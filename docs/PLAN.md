@@ -49,12 +49,13 @@
 - [x] Auto-append improvement log after each eval run
 - [x] 111 unit tests all passing
 
-## Phase 6: CI
-- [ ] GitHub Actions workflow
-- [ ] Lint, typecheck, test, policy test, eval-fast gates
-- [ ] Leak detection gate
-- [ ] Task success regression gate
-- [ ] PR comment with eval summary
+## Phase 6: CI — DONE
+- [x] GitHub Actions workflow on every PR and push to main
+- [x] Jobs: lint-and-typecheck, unit-tests, cerbos-policy-tests, integration-tests-and-eval
+- [x] Leak detection gate: fails build on any permission leak
+- [x] Task success regression gate: fails if >3 point drop vs baseline
+- [x] PR comment with eval summary markdown
+- [x] Artifact uploads for test results and eval reports
 
 ## Phase 7: UI and Packaging
 - [ ] Streamlit chat with user switcher
