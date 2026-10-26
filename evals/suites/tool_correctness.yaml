@@ -1,0 +1,83 @@
+# Tool-Call Correctness Suite
+# ~100 cases: expected tools, arguments, and order
+name: tool_correctness
+version: "1.0"
+description: Verify the agent calls the right tools with correct arguments
+scoring: deterministic
+
+cases:
+  - id: tc-001
+    user: {role: individual_contributor, employee_id: 20}
+    message: "Search for employees named Jordan"
+    expected_tools: [hr_search_employees]
+    expected_args:
+      hr_search_employees: {query: "Jordan"}
+    tags: [hr, search]
+
+  - id: tc-002
+    user: {role: individual_contributor, employee_id: 20}
+    message: "Show me ticket TKT-0042"
+    expected_tools: [tickets_get]
+    expected_args:
+      tickets_get: {ticket_id: "TKT-0042"}
+    tags: [tickets, get]
+
+  - id: tc-003
+    user: {role: individual_contributor, employee_id: 20}
+    message: "Find the Employee Code of Conduct document"
+    expected_tools: [docs_search]
+    expected_args:
+      docs_search: {query: "Employee Code of Conduct"}
+    tags: [documents, search]
+
+  - id: tc-004
+    user: {role: sales_rep, employee_id: 10}
+    message: "Show me deals in the negotiation stage"
+    expected_tools: [crm_search_deals]
+    expected_args:
+      crm_search_deals: {stage: "negotiation"}
+    tags: [crm, filter]
+
+  - id: tc-005
+    user: {role: individual_contributor, employee_id: 20}
+    message: "What channels are available?"
+    expected_tools: [chat_list_channels]
+    tags: [chat, list]
+
+  - id: tc-006
+    user: {role: hr_partner, employee_id: 12}
+    message: "Get performance reviews for employee 20"
+    expected_tools: [hr_get_reviews]
+    expected_args:
+      hr_get_reviews: {employee_id: 20}
+    tags: [hr, reviews]
+
+  - id: tc-007
+    user: {role: executive, employee_id: 1}
+    message: "Search for critical priority tickets that are still open"
+    expected_tools: [tickets_search]
+    expected_args:
+      tickets_search: {priority: "critical", status: "open"}
+    tags: [tickets, filter]
+
+  - id: tc-008
+    user: {role: individual_contributor, employee_id: 20}
+    message: "Show my leave requests"
+    expected_tools: [hr_get_leave]
+    expected_args:
+      hr_get_leave: {employee_id: 20}
+    tags: [hr, leave]
+
+  - id: tc-009
+    user: {role: manager, employee_id: 7}
+    message: "Who reports to me?"
+    expected_tools: [hr_get_org_chart]
+    tags: [hr, org_chart]
+
+  - id: tc-010
+    user: {role: sales_rep, employee_id: 10}
+    message: "Find customers in the Manufacturing industry"
+    expected_tools: [crm_list_customers]
+    expected_args:
+      crm_list_customers: {industry: "Manufacturing"}
+    tags: [crm, customers]

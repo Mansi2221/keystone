@@ -1,0 +1,162 @@
+# Task Success Suite
+# ~150 cases: realistic questions across all roles with gold answers
+name: task_success
+version: "1.0"
+description: Realistic questions and actions across all roles with gold answers
+scoring: llm_judge
+
+cases:
+  # --- Employee Directory (all roles) ---
+  - id: ts-001
+    user: {role: individual_contributor, employee_id: 20}
+    message: "How many employees are in the Engineering department?"
+    expected_answer: "Around 28 employees in Engineering"
+    expected_tools: [hr_search_employees]
+    tags: [directory, engineering]
+
+  - id: ts-002
+    user: {role: manager, employee_id: 7}
+    message: "Who is the CTO of the company?"
+    expected_answer: "The CTO is the head of the Engineering department"
+    expected_tools: [hr_search_employees]
+    tags: [directory, executive]
+
+  - id: ts-003
+    user: {role: sales_rep, employee_id: 10}
+    message: "List all managers in the Sales department"
+    expected_answer: "Sales managers include the Sales Manager and Regional Sales Lead"
+    expected_tools: [hr_search_employees]
+    tags: [directory, managers]
+
+  # --- HR: Salary (restricted) ---
+  - id: ts-010
+    user: {role: individual_contributor, employee_id: 20}
+    message: "What is my current salary?"
+    expected_answer: "Should show the employee's own salary"
+    expected_tools: [hr_get_salary]
+    tags: [salary, own_data]
+
+  - id: ts-011
+    user: {role: hr_partner, employee_id: 12}
+    message: "What is the salary for employee 20?"
+    expected_answer: "Should show salary for employee 20 (HR can see all)"
+    expected_tools: [hr_get_salary]
+    tags: [salary, hr_access]
+
+  - id: ts-012
+    user: {role: executive, employee_id: 1}
+    message: "Show me all salary information for the Engineering department"
+    expected_answer: "Should show salaries for engineering employees"
+    expected_tools: [hr_search_employees, hr_get_salary]
+    tags: [salary, executive_access]
+
+  # --- HR: Performance Reviews ---
+  - id: ts-020
+    user: {role: individual_contributor, employee_id: 20}
+    message: "Show me my performance reviews"
+    expected_answer: "Should show the employee's own reviews"
+    expected_tools: [hr_get_reviews]
+    tags: [reviews, own_data]
+
+  - id: ts-021
+    user: {role: hr_partner, employee_id: 12}
+    message: "What were the last performance ratings for employee 20?"
+    expected_answer: "Should show review ratings"
+    expected_tools: [hr_get_reviews]
+    tags: [reviews, hr_access]
+
+  # --- Tickets ---
+  - id: ts-030
+    user: {role: individual_contributor, employee_id: 20}
+    message: "Show me my open tickets"
+    expected_answer: "Should list tickets owned by or assigned to user 20"
+    expected_tools: [tickets_search]
+    tags: [tickets, own_data]
+
+  - id: ts-031
+    user: {role: manager, employee_id: 8}
+    message: "How many critical tickets are currently open?"
+    expected_answer: "Should show count of critical open tickets"
+    expected_tools: [tickets_search]
+    tags: [tickets, priority]
+
+  - id: ts-032
+    user: {role: executive, employee_id: 1}
+    message: "Show me all security incident tickets"
+    expected_answer: "Should list security incident tickets"
+    expected_tools: [tickets_search]
+    tags: [tickets, security, executive_access]
+
+  - id: ts-033
+    user: {role: hr_partner, employee_id: 12}
+    message: "Are there any HR complaint tickets?"
+    expected_answer: "Should list HR complaint tickets"
+    expected_tools: [tickets_search]
+    tags: [tickets, hr_complaints]
+
+  # --- Documents ---
+  - id: ts-040
+    user: {role: individual_contributor, employee_id: 20}
+    message: "Find the remote work policy"
+    expected_answer: "Should find and show the Remote Work Policy document"
+    expected_tools: [docs_search]
+    tags: [documents, policy]
+
+  - id: ts-041
+    user: {role: executive, employee_id: 1}
+    message: "Show me the latest board minutes"
+    expected_answer: "Should show board minutes content"
+    expected_tools: [docs_search, docs_get]
+    tags: [documents, board_minutes, executive_access]
+
+  - id: ts-042
+    user: {role: finance_analyst, employee_id: 15}
+    message: "Find contracts related to fleet maintenance"
+    expected_answer: "Should find fleet maintenance contracts"
+    expected_tools: [docs_search]
+    tags: [documents, contracts, finance]
+
+  # --- Chat ---
+  - id: ts-050
+    user: {role: individual_contributor, employee_id: 20}
+    message: "What channels am I in?"
+    expected_answer: "Should list public and engineering channels"
+    expected_tools: [chat_list_channels]
+    tags: [chat, channels]
+
+  - id: ts-051
+    user: {role: executive, employee_id: 1}
+    message: "What were the recent messages in the leadership-team channel?"
+    expected_answer: "Should show leadership channel messages"
+    expected_tools: [chat_list_channels, chat_get_messages]
+    tags: [chat, private, executive_access]
+
+  # --- CRM ---
+  - id: ts-060
+    user: {role: sales_rep, employee_id: 10}
+    message: "Show me my active deals"
+    expected_answer: "Should list deals owned by the sales rep"
+    expected_tools: [crm_search_deals]
+    tags: [crm, own_deals]
+
+  - id: ts-061
+    user: {role: executive, employee_id: 1}
+    message: "What is the total pipeline value?"
+    expected_answer: "Should aggregate deal values"
+    expected_tools: [crm_search_deals]
+    tags: [crm, executive_access, aggregation]
+
+  # --- Cross-system ---
+  - id: ts-070
+    user: {role: manager, employee_id: 7}
+    message: "Give me a summary of my team's open tickets and any upcoming leave"
+    expected_answer: "Should combine ticket and leave data for the manager's reports"
+    expected_tools: [tickets_search, hr_get_leave]
+    tags: [cross_system, manager]
+
+  - id: ts-071
+    user: {role: executive, employee_id: 1}
+    message: "What is the overall status of the company right now?"
+    expected_answer: "Should pull from multiple systems to give an overview"
+    expected_tools: [hr_search_employees, tickets_search, crm_search_deals]
+    tags: [cross_system, executive, overview]
