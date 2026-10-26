@@ -1,0 +1,79 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-keystone}
+      POSTGRES_USER: ${POSTGRES_USER:-keystone}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-keystone_dev_password}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./company/sql/init.sql:/docker-entrypoint-initdb.d/01-init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-keystone}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  cerbos:
+    image: ghcr.io/cerbos/cerbos:0.38.0
+    ports:
+      - "${CERBOS_HTTP_PORT:-3592}:3592"
+      - "${CERBOS_PORT:-3593}:3593"
+    volumes:
+      - ./policy:/policies
+    command: ["server", "--config=/policies/.cerbos.yaml"]
+
+  langfuse:
+    image: langfuse/langfuse:2
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-keystone}:${POSTGRES_PASSWORD:-keystone_dev_password}@postgres:5432/langfuse
+      NEXTAUTH_SECRET: ${JWT_SECRET_KEY:-change-this-to-a-random-secret-in-production}
+      NEXTAUTH_URL: http://localhost:3001
+      SALT: salt-for-langfuse
+    ports:
+      - "3001:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-keystone}:${POSTGRES_PASSWORD:-keystone_dev_password}@postgres:5432/${POSTGRES_DB:-keystone}
+      CERBOS_HOST: cerbos
+      CERBOS_PORT: 3593
+      LANGFUSE_HOST: http://langfuse:3000
+      LANGFUSE_SECRET_KEY: ${LANGFUSE_SECRET_KEY:-}
+      LANGFUSE_PUBLIC_KEY: ${LANGFUSE_PUBLIC_KEY:-}
+      LLM_PROVIDER: ${LLM_PROVIDER:-openai}
+      LLM_MODEL: ${LLM_MODEL:-gpt-4o-mini}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-change-this-to-a-random-secret-in-production}
+    ports:
+      - "${APP_PORT:-8000}:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      cerbos:
+        condition: service_started
+
+  ui:
+    build:
+      context: .
+      dockerfile: Dockerfile.ui
+    environment:
+      API_URL: http://api:8000
+    ports:
+      - "${STREAMLIT_PORT:-8501}:8501"
+    depends_on:
+      - api
+
+volumes:
+  pgdata:
