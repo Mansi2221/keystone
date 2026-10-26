@@ -57,11 +57,13 @@
 - [x] PR comment with eval summary markdown
 - [x] Artifact uploads for test results and eval reports
 
-## Phase 7: UI and Packaging
-- [ ] Streamlit chat with user switcher
-- [ ] Approval panel for write actions
-- [ ] Audit log view and Langfuse trace links
-- [ ] Side-by-side demo mode
-- [ ] README.md with architecture diagram
-- [ ] docs/architecture.md
-- [ ] docs/deployment-memo.md
+## Phase 7: UI and Packaging — DONE
+- [x] Streamlit chat with user switcher (12 demo users across all roles)
+- [x] Approval panel for pending write actions
+- [x] Audit log view with trace IDs
+- [x] Side-by-side demo mode: same question as contractor, manager, executive
+- [x] README.md with Mermaid architecture diagram, enforcement layers, quickstart
+- [x] docs/architecture.md: components, request flow, design decisions, trade-offs
+- [x] docs/deployment-memo.md: 2-page CIO memo with problem, design, results, recommendations
+- [x] docs/improvement-log.md with auto-append from eval runner
+- [x] 111 unit tests all passing across all 7 phases
