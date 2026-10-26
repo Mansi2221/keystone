@@ -38,12 +38,16 @@
 - [x] Aggregation leak detection (small team threshold)
 - [x] 96 unit tests all passing
 
-## Phase 5: Evaluation Harness
-- [ ] 5 eval suites (task success, permission leakage, tool correctness, over-refusal, cost/latency)
-- [ ] Eval case generation scripts
-- [ ] LLM judge with calibration
-- [ ] Eval runner (`make eval`, `make eval-fast`)
-- [ ] Improvement log automation
+## Phase 5: Evaluation Harness — DONE
+- [x] 4 eval suites: task_success (21 cases), permission_leakage (28 cases), tool_correctness (10 cases), over_refusal (15 cases)
+- [x] LLM judge with fallback keyword scoring
+- [x] Canary-based leak detection against registry
+- [x] Tool correctness scorer (tools + arguments)
+- [x] Calibration CLI: hand-label 100, measure Cohen's kappa, precision, recall
+- [x] Eval runner: `make eval` (all), `make eval-fast` (stratified 20% subset)
+- [x] Trace-to-eval converter: turn failed traces into new eval cases
+- [x] Auto-append improvement log after each eval run
+- [x] 111 unit tests all passing
 
 ## Phase 6: CI
 - [ ] GitHub Actions workflow
