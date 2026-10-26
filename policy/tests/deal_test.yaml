@@ -1,0 +1,138 @@
+---
+name: Deal access tests
+description: Verify deal visibility and update permissions
+resources:
+  own_deal: &own_deal
+    kind: deal
+    id: "deal_001"
+    attr:
+      owner_id: "100"
+
+  other_deal: &other_deal
+    kind: deal
+    id: "deal_002"
+    attr:
+      owner_id: "200"
+
+principals:
+  deal_owner: &deal_owner
+    id: "100"
+    roles: ["sales_rep"]
+    attr:
+      groups: ["sales", "sales_all"]
+
+  other_sales_rep: &other_sales_rep
+    id: "300"
+    roles: ["sales_rep"]
+    attr:
+      groups: ["sales", "sales_all"]
+
+  sales_manager: &sales_manager
+    id: "400"
+    roles: ["manager"]
+    attr:
+      groups: ["sales", "sales_all", "leadership"]
+
+  executive: &executive
+    id: "1"
+    roles: ["executive"]
+    attr:
+      groups: ["leadership", "board_access"]
+
+  contractor: &contractor
+    id: "500"
+    roles: ["contractor"]
+    attr:
+      groups: ["engineering"]
+
+  eng_ic: &eng_ic
+    id: "600"
+    roles: ["individual_contributor"]
+    attr:
+      groups: ["engineering", "engineering_all"]
+
+tests:
+  - name: Deal owner can read own deal
+    input:
+      principals: ["deal_owner"]
+      resources: ["own_deal"]
+      actions: ["read"]
+    expected:
+      - principal: deal_owner
+        resource: own_deal
+        actions:
+          read: EFFECT_ALLOW
+
+  - name: Deal owner can update own deal
+    input:
+      principals: ["deal_owner"]
+      resources: ["own_deal"]
+      actions: ["update"]
+    expected:
+      - principal: deal_owner
+        resource: own_deal
+        actions:
+          update: EFFECT_ALLOW
+
+  - name: Other sales rep cannot read deal they don't own
+    input:
+      principals: ["other_sales_rep"]
+      resources: ["own_deal"]
+      actions: ["read"]
+    expected:
+      - principal: other_sales_rep
+        resource: own_deal
+        actions:
+          read: EFFECT_DENY
+
+  - name: Sales manager can read all deals
+    input:
+      principals: ["sales_manager"]
+      resources: ["own_deal", "other_deal"]
+      actions: ["read"]
+    expected:
+      - principal: sales_manager
+        resource: own_deal
+        actions:
+          read: EFFECT_ALLOW
+      - principal: sales_manager
+        resource: other_deal
+        actions:
+          read: EFFECT_ALLOW
+
+  - name: Executive can read all deals
+    input:
+      principals: ["executive"]
+      resources: ["own_deal", "other_deal"]
+      actions: ["read"]
+    expected:
+      - principal: executive
+        resource: own_deal
+        actions:
+          read: EFFECT_ALLOW
+      - principal: executive
+        resource: other_deal
+        actions:
+          read: EFFECT_ALLOW
+
+  - name: Contractor cannot read any deal
+    input:
+      principals: ["contractor"]
+      resources: ["own_deal"]
+      actions: ["read"]
+    expected:
+      - principal: contractor
+        resource: own_deal
+        actions:
+          read: EFFECT_DENY
+
+  - name: Engineering IC cannot read deals
+    input:
+      principals: ["eng_ic"]
+      resources: ["own_deal"]
+      actions: ["read"]
+    expected:
+      - principal: eng_ic
+        resource: own_deal
+        actions:
+          read: EFFECT_DENY

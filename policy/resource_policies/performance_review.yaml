@@ -1,0 +1,31 @@
+---
+apiVersion: api.cerbos.dev/v1
+resourcePolicy:
+  version: default
+  resource: performance_review
+  rules:
+    # Employee can read their own reviews (not contractors)
+    - actions: ["read"]
+      effect: EFFECT_ALLOW
+      roles: ["individual_contributor", "manager", "hr_partner", "finance_analyst", "sales_rep", "executive"]
+      condition:
+        match:
+          any:
+            of:
+              - expr: request.resource.attr.employee_id == request.principal.id
+              - expr: request.resource.attr.reviewer_id == request.principal.id
+
+    # HR partners can read all reviews
+    - actions: ["read"]
+      effect: EFFECT_ALLOW
+      roles: ["hr_partner"]
+
+    # Executives can read all reviews
+    - actions: ["read"]
+      effect: EFFECT_ALLOW
+      roles: ["executive"]
+
+    # Contractors cannot read reviews
+    - actions: ["read"]
+      effect: EFFECT_DENY
+      roles: ["contractor"]

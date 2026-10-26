@@ -1,0 +1,36 @@
+---
+apiVersion: api.cerbos.dev/v1
+resourcePolicy:
+  version: default
+  resource: salary
+  rules:
+    # Employee can read their own salary (not contractors)
+    - actions: ["read"]
+      effect: EFFECT_ALLOW
+      roles: ["individual_contributor", "manager", "hr_partner", "finance_analyst", "sales_rep", "executive"]
+      condition:
+        match:
+          expr: request.resource.attr.employee_id == request.principal.id
+
+    # Manager can read their direct/indirect reports' salaries
+    - actions: ["read"]
+      effect: EFFECT_ALLOW
+      roles: ["manager"]
+      condition:
+        match:
+          expr: request.resource.attr.employee_id in request.principal.attr.report_ids
+
+    # HR partners can read all salaries
+    - actions: ["read"]
+      effect: EFFECT_ALLOW
+      roles: ["hr_partner"]
+
+    # Executives can read all salaries
+    - actions: ["read"]
+      effect: EFFECT_ALLOW
+      roles: ["executive"]
+
+    # Contractors cannot read any salary
+    - actions: ["read"]
+      effect: EFFECT_DENY
+      roles: ["contractor"]

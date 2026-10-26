@@ -1,0 +1,135 @@
+---
+name: Document access tests
+description: Verify document permissions including board minutes
+resources:
+  board_minutes: &board_minutes
+    kind: document
+    id: "doc_001"
+    attr:
+      doc_type: "board_minutes"
+      access_groups: ["board_access"]
+      owner_id: "1"
+
+  team_wiki: &team_wiki
+    kind: document
+    id: "doc_002"
+    attr:
+      doc_type: "wiki"
+      access_groups: ["engineering_all"]
+      owner_id: "50"
+
+  public_policy: &public_policy
+    kind: document
+    id: "doc_003"
+    attr:
+      doc_type: "policy"
+      access_groups: ["all"]
+      owner_id: "10"
+
+  finance_contract: &finance_contract
+    kind: document
+    id: "doc_004"
+    attr:
+      doc_type: "contract"
+      access_groups: ["finance_read", "leadership"]
+      owner_id: "30"
+
+principals:
+  eng_ic: &eng_ic
+    id: "50"
+    roles: ["individual_contributor"]
+    attr:
+      groups: ["engineering", "engineering_all", "all"]
+
+  executive: &executive
+    id: "1"
+    roles: ["executive"]
+    attr:
+      groups: ["leadership", "board_access", "operations", "operations_all", "all"]
+
+  contractor: &contractor
+    id: "100"
+    roles: ["contractor"]
+    attr:
+      groups: ["engineering", "engineering_all"]
+
+  finance_analyst: &finance_analyst
+    id: "30"
+    roles: ["finance_analyst"]
+    attr:
+      groups: ["finance", "finance_all", "finance_read", "all"]
+
+tests:
+  - name: Executive can read board minutes
+    input:
+      principals: ["executive"]
+      resources: ["board_minutes"]
+      actions: ["read"]
+    expected:
+      - principal: executive
+        resource: board_minutes
+        actions:
+          read: EFFECT_ALLOW
+
+  - name: IC cannot read board minutes
+    input:
+      principals: ["eng_ic"]
+      resources: ["board_minutes"]
+      actions: ["read"]
+    expected:
+      - principal: eng_ic
+        resource: board_minutes
+        actions:
+          read: EFFECT_DENY
+
+  - name: Contractor cannot read board minutes
+    input:
+      principals: ["contractor"]
+      resources: ["board_minutes"]
+      actions: ["read"]
+    expected:
+      - principal: contractor
+        resource: board_minutes
+        actions:
+          read: EFFECT_DENY
+
+  - name: Engineering IC can read engineering wiki
+    input:
+      principals: ["eng_ic"]
+      resources: ["team_wiki"]
+      actions: ["read"]
+    expected:
+      - principal: eng_ic
+        resource: team_wiki
+        actions:
+          read: EFFECT_ALLOW
+
+  - name: Finance analyst can read contracts
+    input:
+      principals: ["finance_analyst"]
+      resources: ["finance_contract"]
+      actions: ["read"]
+    expected:
+      - principal: finance_analyst
+        resource: finance_contract
+        actions:
+          read: EFFECT_ALLOW
+
+  - name: Contractor cannot read any document
+    input:
+      principals: ["contractor"]
+      resources: ["team_wiki", "public_policy", "finance_contract"]
+      actions: ["read"]
+    expected:
+      - principal: contractor
+        resource: team_wiki
+        actions:
+          read: EFFECT_DENY
+      - principal: contractor
+        resource: public_policy
+        actions:
+          read: EFFECT_DENY
+      - principal: contractor
+        resource: finance_contract
+        actions:
+          read: EFFECT_DENY
