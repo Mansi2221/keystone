@@ -203,12 +203,33 @@ async def chat(
     req: ChatRequest,
     principal: Principal = Depends(get_current_principal),
 ) -> ChatResponse:
-    """Chat with the Keystone agent. (Full implementation in Phase 4.)"""
+    """Chat with the Keystone agent."""
+    from agent.graph import run_agent
+
+    state = run_agent(
+        message=req.message,
+        principal=principal,
+        conversation_id=req.conversation_id or "",
+    )
+
+    # Build pending actions list
+    pending = []
+    if state.needs_approval and state.pending_action:
+        pa = state.pending_action
+        pending.append({
+            "tool": pa.tool_name,
+            "arguments": pa.arguments,
+            "description": f"Pending: {pa.tool_name}",
+        })
+
     return ChatResponse(
-        reply="Agent chat will be implemented in Phase 4. "
-        f"You are logged in as {principal.employee_id} ({principal.role}).",
-        sources=[],
-        pending_actions=[],
+        reply=state.final_response or state.draft_response or "I couldn't generate a response.",
+        sources=[
+            {"type": s.source_type, "id": s.source_id, "title": s.title}
+            for s in state.sources
+        ],
+        pending_actions=pending,
+        trace_id=state.trace_id,
     )
 
 
