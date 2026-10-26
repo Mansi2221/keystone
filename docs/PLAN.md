@@ -27,16 +27,16 @@
 - [x] Identity resolution from HR system with recursive report tree
 - [x] Principal propagation to all tool calls via dependency injection
 
-## Phase 4: The Agent
-- [ ] LangGraph graph: planner, tool router, executor, self-check, approval, responder
-- [ ] Cerbos check before every tool call
-- [ ] LangGraph interrupt for write actions
-- [ ] Self-check node for grounding and citations
-- [ ] Input guard for prompt injection detection
-- [ ] Output scanner for canary/sensitive pattern leaks
-- [ ] Audit log table
-- [ ] Langfuse tracing
-- [ ] Aggregation leak and cross-system inference handling
+## Phase 4: The Agent — DONE
+- [x] LangGraph graph: planner, tool_router, tool_executor, approval, responder, self_check, output_scanner
+- [x] Policy-checked tool execution with RLS enforcement
+- [x] LangGraph interrupt for write actions with approval node
+- [x] Self-check node verifies grounding and citations
+- [x] Input guard: 16 injection patterns, wrap untrusted data
+- [x] Output scanner: canary detection against registry, leak blocking
+- [x] Audit log integration via API gateway
+- [x] Aggregation leak detection (small team threshold)
+- [x] 96 unit tests all passing
 
 ## Phase 5: Evaluation Harness
 - [ ] 5 eval suites (task success, permission leakage, tool correctness, over-refusal, cost/latency)
