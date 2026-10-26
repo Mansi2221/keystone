@@ -230,6 +230,13 @@ def seed_all() -> None:
 def main() -> None:
     seed_all()
 
+    # Apply RLS policies after seeding
+    from company.rls import apply_rls_policies
+
+    logger.info("Applying RLS policies...")
+    apply_rls_policies()
+    logger.info("RLS policies applied.")
+
 
 if __name__ == "__main__":
     main()

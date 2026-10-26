@@ -11,12 +11,13 @@
 - [x] Seed script: `make seed` builds everything from scratch
 - [x] Tests: 69 tests — row counts, org chart integrity, canary completeness — ALL PASSING
 
-## Phase 2: MCP Servers and Data-Layer Security
-- [ ] MCP server per system (hr, tickets, docs, chat, crm)
-- [ ] Principal propagation (user_id, role, groups) on every tool call
-- [ ] Postgres RLS on every table with user-scoped data
-- [ ] Vector retrieval pre-filtering by access groups
-- [ ] Integration tests: same query, different users, different results
+## Phase 2: MCP Servers and Data-Layer Security — DONE
+- [x] MCP server per system (hr, tickets, docs, chat, crm) with tool registries
+- [x] Principal propagation (user_id, role, groups) on every tool call
+- [x] Postgres RLS on 11 tables with 20+ policies (salary, reviews, tickets, docs, chat, deals, leave)
+- [x] Vector retrieval pre-filtering by access groups in SQL before similarity ranking
+- [x] Integration tests for RLS: salary visibility, board minutes, deals, private chat, contractor lockout
+- [x] Shared tool registry with write tool detection for approval flow
 
 ## Phase 3: Policy Engine and Identity
 - [ ] Cerbos policies for full permission matrix
