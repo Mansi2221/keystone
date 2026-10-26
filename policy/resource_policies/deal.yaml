@@ -1,0 +1,31 @@
+---
+apiVersion: api.cerbos.dev/v1
+resourcePolicy:
+  version: default
+  resource: deal
+  rules:
+    # Deal owner can read and update
+    - actions: ["read", "update"]
+      effect: EFFECT_ALLOW
+      roles: ["sales_rep", "individual_contributor", "manager", "executive"]
+      condition:
+        match:
+          expr: request.resource.attr.owner_id == request.principal.id
+
+    # Sales leadership (managers in sales) can read all deals
+    - actions: ["read"]
+      effect: EFFECT_ALLOW
+      roles: ["manager"]
+      condition:
+        match:
+          expr: '"sales" in request.principal.attr.groups'
+
+    # Executives can read and update all deals
+    - actions: ["read", "update"]
+      effect: EFFECT_ALLOW
+      roles: ["executive"]
+
+    # Contractors denied all deals
+    - actions: ["read", "update"]
+      effect: EFFECT_DENY
+      roles: ["contractor"]

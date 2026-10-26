@@ -1,0 +1,35 @@
+---
+apiVersion: api.cerbos.dev/v1
+resourcePolicy:
+  version: default
+  resource: chat_channel
+  rules:
+    # Public channels visible to all
+    - actions: ["read", "write"]
+      effect: EFFECT_ALLOW
+      roles: ["individual_contributor", "manager", "hr_partner", "finance_analyst", "sales_rep", "executive", "contractor"]
+      condition:
+        match:
+          expr: request.resource.attr.is_private == false
+
+    # Private channels and DMs: members only
+    - actions: ["read", "write"]
+      effect: EFFECT_ALLOW
+      roles: ["individual_contributor", "manager", "hr_partner", "finance_analyst", "sales_rep", "executive"]
+      condition:
+        match:
+          all:
+            of:
+              - expr: request.resource.attr.is_private == true
+              - expr: request.principal.id in request.resource.attr.member_ids
+
+    # Non-members denied private channels
+    - actions: ["read", "write"]
+      effect: EFFECT_DENY
+      roles: ["individual_contributor", "manager", "hr_partner", "finance_analyst", "sales_rep", "executive", "contractor"]
+      condition:
+        match:
+          all:
+            of:
+              - expr: request.resource.attr.is_private == true
+              - expr: "!(request.principal.id in request.resource.attr.member_ids)"

@@ -1,0 +1,47 @@
+---
+apiVersion: api.cerbos.dev/v1
+resourcePolicy:
+  version: default
+  resource: document
+  rules:
+    # Board minutes: executives only
+    - actions: ["read"]
+      effect: EFFECT_ALLOW
+      roles: ["executive"]
+      condition:
+        match:
+          expr: request.resource.attr.doc_type == "board_minutes"
+
+    # Board minutes denied for non-executives
+    - actions: ["read"]
+      effect: EFFECT_DENY
+      roles: ["individual_contributor", "manager", "hr_partner", "finance_analyst", "sales_rep", "contractor"]
+      condition:
+        match:
+          expr: request.resource.attr.doc_type == "board_minutes"
+
+    # Documents accessible if user's groups overlap with access_groups
+    - actions: ["read"]
+      effect: EFFECT_ALLOW
+      roles: ["individual_contributor", "manager", "hr_partner", "finance_analyst", "sales_rep", "executive"]
+      condition:
+        match:
+          expr: request.resource.attr.access_groups.intersect(request.principal.attr.groups).size() > 0
+
+    # Document owner can always read
+    - actions: ["read"]
+      effect: EFFECT_ALLOW
+      roles: ["individual_contributor", "manager", "hr_partner", "finance_analyst", "sales_rep", "executive"]
+      condition:
+        match:
+          expr: request.resource.attr.owner_id == request.principal.id
+
+    # Executives can read all documents
+    - actions: ["read"]
+      effect: EFFECT_ALLOW
+      roles: ["executive"]
+
+    # Contractors denied all documents
+    - actions: ["read"]
+      effect: EFFECT_DENY
+      roles: ["contractor"]

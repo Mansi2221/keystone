@@ -1,0 +1,28 @@
+---
+apiVersion: api.cerbos.dev/v1
+resourcePolicy:
+  version: default
+  resource: termination
+  rules:
+    # HR partners can read all termination records
+    - actions: ["read"]
+      effect: EFFECT_ALLOW
+      roles: ["hr_partner"]
+
+    # Executives can read all termination records
+    - actions: ["read"]
+      effect: EFFECT_ALLOW
+      roles: ["executive"]
+
+    # Initiator can read their own initiated terminations
+    - actions: ["read"]
+      effect: EFFECT_ALLOW
+      roles: ["manager"]
+      condition:
+        match:
+          expr: request.resource.attr.initiated_by == request.principal.id
+
+    # All other roles denied
+    - actions: ["read"]
+      effect: EFFECT_DENY
+      roles: ["individual_contributor", "finance_analyst", "sales_rep", "contractor"]

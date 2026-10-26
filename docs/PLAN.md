@@ -19,13 +19,13 @@
 - [x] Integration tests for RLS: salary visibility, board minutes, deals, private chat, contractor lockout
 - [x] Shared tool registry with write tool detection for approval flow
 
-## Phase 3: Policy Engine and Identity
-- [ ] Cerbos policies for full permission matrix
-- [ ] Cerbos policy tests covering every rule including denials
-- [ ] FastAPI gateway with JWT auth
-- [ ] Dev login endpoint with seeded demo users
-- [ ] Identity resolution from HR system
-- [ ] Principal attachment and propagation
+## Phase 3: Policy Engine and Identity — DONE
+- [x] Cerbos YAML policies for salary, reviews, terminations, tickets, documents, chat, deals
+- [x] Cerbos policy tests: salary (8 cases), documents (6 cases), deals (7 cases)
+- [x] FastAPI gateway with JWT auth, dev login, audit logging
+- [x] 13 seeded demo users covering all 7 roles
+- [x] Identity resolution from HR system with recursive report tree
+- [x] Principal propagation to all tool calls via dependency injection
 
 ## Phase 4: The Agent
 - [ ] LangGraph graph: planner, tool router, executor, self-check, approval, responder

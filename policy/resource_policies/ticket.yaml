@@ -1,0 +1,49 @@
+---
+apiVersion: api.cerbos.dev/v1
+resourcePolicy:
+  version: default
+  resource: ticket
+  rules:
+    # Own tickets (owner or assignee)
+    - actions: ["read", "update"]
+      effect: EFFECT_ALLOW
+      roles: ["individual_contributor", "manager", "hr_partner", "finance_analyst", "sales_rep", "executive", "contractor"]
+      condition:
+        match:
+          any:
+            of:
+              - expr: request.resource.attr.owner_id == request.principal.id
+              - expr: request.resource.attr.assignee_id == request.principal.id
+
+    # Team tickets for ICs and managers
+    - actions: ["read"]
+      effect: EFFECT_ALLOW
+      roles: ["individual_contributor", "manager", "sales_rep", "finance_analyst"]
+      condition:
+        match:
+          expr: request.resource.attr.team in request.principal.attr.groups
+
+    # HR partners see HR complaint tickets and general tickets
+    - actions: ["read"]
+      effect: EFFECT_ALLOW
+      roles: ["hr_partner"]
+      condition:
+        match:
+          expr: request.resource.attr.category in ["hr_complaint", "it", "ops"]
+
+    # Executives see all tickets
+    - actions: ["read", "update"]
+      effect: EFFECT_ALLOW
+      roles: ["executive"]
+
+    # Write actions: comment
+    - actions: ["comment"]
+      effect: EFFECT_ALLOW
+      roles: ["individual_contributor", "manager", "hr_partner", "finance_analyst", "sales_rep", "executive"]
+      condition:
+        match:
+          any:
+            of:
+              - expr: request.resource.attr.owner_id == request.principal.id
+              - expr: request.resource.attr.assignee_id == request.principal.id
+              - expr: request.resource.attr.team in request.principal.attr.groups

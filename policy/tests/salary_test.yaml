@@ -1,0 +1,147 @@
+---
+name: Salary access tests
+description: Verify salary read permissions across all roles
+resources:
+  own_salary: &own_salary
+    kind: salary
+    id: "sal_001"
+    attr:
+      employee_id: "100"
+
+  other_salary: &other_salary
+    kind: salary
+    id: "sal_002"
+    attr:
+      employee_id: "200"
+
+  report_salary: &report_salary
+    kind: salary
+    id: "sal_003"
+    attr:
+      employee_id: "300"
+
+principals:
+  ic: &ic
+    id: "100"
+    roles: ["individual_contributor"]
+    attr:
+      report_ids: []
+
+  manager: &manager
+    id: "100"
+    roles: ["manager"]
+    attr:
+      report_ids: ["300", "301", "302"]
+
+  hr_partner: &hr_partner
+    id: "100"
+    roles: ["hr_partner"]
+    attr:
+      report_ids: []
+
+  executive: &executive
+    id: "100"
+    roles: ["executive"]
+    attr:
+      report_ids: []
+
+  contractor: &contractor
+    id: "100"
+    roles: ["contractor"]
+    attr:
+      report_ids: []
+
+  sales_rep: &sales_rep
+    id: "100"
+    roles: ["sales_rep"]
+    attr:
+      report_ids: []
+
+tests:
+  - name: IC can read own salary
+    input:
+      principals: ["ic"]
+      resources: ["own_salary"]
+      actions: ["read"]
+    expected:
+      - principal: ic
+        resource: own_salary
+        actions:
+          read: EFFECT_ALLOW
+
+  - name: IC cannot read other's salary
+    input:
+      principals: ["ic"]
+      resources: ["other_salary"]
+      actions: ["read"]
+    expected:
+      - principal: ic
+        resource: other_salary
+        actions:
+          read: EFFECT_DENY
+
+  - name: Manager can read report's salary
+    input:
+      principals: ["manager"]
+      resources: ["report_salary"]
+      actions: ["read"]
+    expected:
+      - principal: manager
+        resource: report_salary
+        actions:
+          read: EFFECT_ALLOW
+
+  - name: Manager cannot read non-report salary
+    input:
+      principals: ["manager"]
+      resources: ["other_salary"]
+      actions: ["read"]
+    expected:
+      - principal: manager
+        resource: other_salary
+        actions:
+          read: EFFECT_DENY
+
+  - name: HR partner can read any salary
+    input:
+      principals: ["hr_partner"]
+      resources: ["other_salary"]
+      actions: ["read"]
+    expected:
+      - principal: hr_partner
+        resource: other_salary
+        actions:
+          read: EFFECT_ALLOW
+
+  - name: Executive can read any salary
+    input:
+      principals: ["executive"]
+      resources: ["other_salary"]
+      actions: ["read"]
+    expected:
+      - principal: executive
+        resource: other_salary
+        actions:
+          read: EFFECT_ALLOW
+
+  - name: Contractor cannot read own salary
+    input:
+      principals: ["contractor"]
+      resources: ["own_salary"]
+      actions: ["read"]
+    expected:
+      - principal: contractor
+        resource: own_salary
+        actions:
+          read: EFFECT_DENY
+
+  - name: Contractor cannot read any salary
+    input:
+      principals: ["contractor"]
+      resources: ["other_salary"]
+      actions: ["read"]
+    expected:
+      - principal: contractor
+        resource: other_salary
+        actions:
+          read: EFFECT_DENY
