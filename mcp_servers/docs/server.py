@@ -92,14 +92,24 @@ def semantic_search(
     This ensures restricted documents are never returned to unauthorized users,
     even if they are semantically similar to the query.
     """
+    from company.config import settings
+
     with rls_session(principal) as session:
         # Build groups array for the pre-filter
         groups = principal.groups
 
-        # Pre-filter + similarity query
-        # The RLS policy on document_chunks handles the access filtering,
-        # but we add an explicit pre-filter for clarity and defense in depth
-        stmt = text("""
+        # RETRIEVAL_PREFILTER: add explicit access-group filter
+        # The RLS policy on document_chunks provides a second layer,
+        # but we add an explicit pre-filter for defense in depth.
+        if settings.protection_enabled("retrieval_prefilter"):
+            where_clause = """WHERE
+                (dc.access_groups && :groups::text[]
+                 OR :role = 'executive'
+                )"""
+        else:
+            where_clause = ""
+
+        stmt = text(f"""
             SELECT
                 dc.id,
                 dc.document_id,
@@ -112,10 +122,7 @@ def semantic_search(
                 1 - (dc.embedding <=> :embedding::vector) AS similarity
             FROM document_chunks dc
             JOIN documents d ON d.id = dc.document_id
-            WHERE
-                (dc.access_groups && :groups::text[]
-                 OR :role = 'executive'
-                )
+            {where_clause}
             ORDER BY dc.embedding <=> :embedding::vector
             LIMIT :limit
         """)

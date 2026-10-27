@@ -117,6 +117,56 @@ def scan_output_for_leaks(
     return flags
 
 
+def check_tool_permission(
+    tool_name: str,
+    arguments: dict[str, Any],
+    principal: Principal,
+) -> str | None:
+    """Application-level policy check before tool execution.
+
+    Returns an error string if denied, None if allowed.
+    This is the POLICY_CHECKS layer — independent of RLS.
+    """
+    role = principal.role
+    uid = principal.user_id
+
+    # Contractors: no salary or review access at all
+    if role == "contractor" and tool_name in (
+        "hr_get_salary", "hr_get_reviews", "hr_get_leave",
+    ):
+        return f"Access denied: contractors cannot access {tool_name}"
+
+    # Salary: HR, executive, or own data only (managers via report_ids)
+    if tool_name == "hr_get_salary":
+        target_id = arguments.get("employee_id", uid)
+        if target_id != uid:
+            if role in ("hr_partner", "executive"):
+                pass  # allowed
+            elif role == "manager" and target_id in (principal.report_ids or []):
+                pass  # manager viewing report
+            else:
+                return f"Access denied: role '{role}' cannot view salary for employee {target_id}"
+
+    # Reviews: HR, executive, or own data only
+    if tool_name == "hr_get_reviews":
+        target_id = arguments.get("employee_id", uid)
+        if target_id != uid:
+            if role not in ("hr_partner", "executive"):
+                return f"Access denied: role '{role}' cannot view reviews for employee {target_id}"
+
+    # Termination records: HR and executive only
+    if tool_name == "hr_get_terminations":
+        if role not in ("hr_partner", "executive"):
+            return "Access denied: only HR and executives can view termination records"
+
+    # Private deal access: owner, sales leadership, or executive
+    if tool_name == "crm_get_deal":
+        if role not in ("sales_rep", "manager", "executive"):
+            return f"Access denied: role '{role}' cannot view deal details"
+
+    return None
+
+
 def check_aggregation_risk(
     tool_name: str,
     arguments: dict[str, Any],

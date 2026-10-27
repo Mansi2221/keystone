@@ -123,6 +123,28 @@ class Settings(BaseSettings):
     streamlit_port: int = 8501
     log_level: str = "INFO"
 
+    # ── Eval ablation flags ─────────────────────────────────────
+    # These are ONLY respected when eval_mode=True.
+    # The API and UI never set eval_mode, so protections cannot be
+    # disabled outside the eval harness.
+    eval_mode: bool = False
+    ablation_policy_checks: bool = True
+    ablation_rls: bool = True
+    ablation_retrieval_prefilter: bool = True
+    ablation_aggregation_guard: bool = True
+    ablation_injection_scanner: bool = True
+    ablation_output_scanner: bool = True
+
+    def protection_enabled(self, name: str) -> bool:
+        """Check if a protection layer is active.
+
+        Always returns True outside eval_mode — protections cannot be
+        disabled in the API or UI, only in the eval harness.
+        """
+        if not self.eval_mode:
+            return True
+        return getattr(self, f"ablation_{name}", True)
+
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8", "extra": "ignore"}
 
 
