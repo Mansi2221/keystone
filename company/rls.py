@@ -219,6 +219,51 @@ CREATE POLICY leave_hr_exec ON leave_records FOR SELECT
 """
 
 
+RLS_TABLES = [
+    "salaries", "performance_reviews", "termination_records",
+    "tickets", "ticket_comments", "documents", "document_chunks",
+    "chat_channels", "chat_messages", "deals", "leave_records",
+]
+
+
+def disable_all_rls() -> None:
+    """Disable RLS on all tables. EVAL MODE ONLY.
+
+    Raises RuntimeError if called outside eval_mode.
+    """
+    from company.config import settings
+    if not settings.eval_mode:
+        raise RuntimeError("Cannot disable RLS outside eval mode")
+
+    import psycopg
+    raw_url = settings.raw_database_url
+    with psycopg.connect(raw_url, autocommit=True) as conn:
+        cur = conn.cursor()
+        # Drop all existing policies
+        cur.execute("""
+            DO $$
+            DECLARE pol RECORD;
+            BEGIN
+                FOR pol IN
+                    SELECT policyname, tablename FROM pg_policies
+                    WHERE schemaname = 'public'
+                LOOP
+                    EXECUTE format('DROP POLICY IF EXISTS %I ON %I', pol.policyname, pol.tablename);
+                END LOOP;
+            END $$;
+        """)
+        for table in RLS_TABLES:
+            cur.execute(f"ALTER TABLE {table} DISABLE ROW LEVEL SECURITY")
+        cur.close()
+    logger.warning("RLS DISABLED on all tables (eval ablation mode)")
+
+
+def enable_all_rls() -> None:
+    """Re-enable RLS on all tables by applying full policy set."""
+    apply_rls_policies()
+    logger.info("RLS RE-ENABLED on all tables")
+
+
 def apply_rls_policies() -> None:
     """Apply all RLS policies to the database.
 

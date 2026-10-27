@@ -13,10 +13,12 @@ from langchain_core.messages import HumanMessage, SystemMessage
 
 from agent.guards import (
     check_aggregation_risk,
+    check_tool_permission,
     scan_for_injections,
     scan_output_for_leaks,
     wrap_untrusted,
 )
+from company.config import settings
 from agent.prompts import PLANNER_PROMPT, SELF_CHECK_PROMPT, SYSTEM_PROMPT
 from agent.state import AgentState, Source, ToolCall
 from company.principal import Principal
@@ -291,13 +293,23 @@ def tool_executor_node(state: AgentState) -> AgentState:
             state.current_tool_index = i
             return state  # Interrupt for approval
 
-        # Check aggregation risk
-        agg_risk = check_aggregation_risk(tc.tool_name, tc.arguments, state.principal)
-        if agg_risk:
-            tc.result = {"success": False, "error": agg_risk, "data": None}
-            tc.policy_decision = "deny_aggregation"
-            state.tool_results.append(tc.result)
-            continue
+        # POLICY_CHECKS: application-level permission check
+        if settings.protection_enabled("policy_checks"):
+            deny = check_tool_permission(tc.tool_name, tc.arguments, state.principal)
+            if deny:
+                tc.result = {"success": False, "error": deny, "data": None}
+                tc.policy_decision = "deny_policy"
+                state.tool_results.append(tc.result)
+                continue
+
+        # AGGREGATION_GUARD: check aggregation risk
+        if settings.protection_enabled("aggregation_guard"):
+            agg_risk = check_aggregation_risk(tc.tool_name, tc.arguments, state.principal)
+            if agg_risk:
+                tc.result = {"success": False, "error": agg_risk, "data": None}
+                tc.policy_decision = "deny_aggregation"
+                state.tool_results.append(tc.result)
+                continue
 
         # Execute tool
         tc.policy_decision = "allow"
@@ -305,18 +317,18 @@ def tool_executor_node(state: AgentState) -> AgentState:
         tc.result = result
         state.tool_results.append(result)
 
-        # Scan result content for injections
-        result_str = json.dumps(result.get("data", ""), default=str)
-        injection_flags = scan_for_injections(result_str)
-        if injection_flags:
-            state.input_guard_flags.extend(injection_flags)
-            logger.warning(
-                "Injection detected in tool %s result: %s",
-                tc.tool_name, injection_flags,
-            )
-            # Wrap the data as untrusted
-            if result.get("data"):
-                result["_untrusted"] = True
+        # INJECTION_SCANNER: scan result content for injections
+        if settings.protection_enabled("injection_scanner"):
+            result_str = json.dumps(result.get("data", ""), default=str)
+            injection_flags = scan_for_injections(result_str)
+            if injection_flags:
+                state.input_guard_flags.extend(injection_flags)
+                logger.warning(
+                    "Injection detected in tool %s result: %s",
+                    tc.tool_name, injection_flags,
+                )
+                if result.get("data"):
+                    result["_untrusted"] = True
 
         # Extract sources from results
         _extract_sources(result, tc.tool_name, state)
@@ -430,6 +442,11 @@ def output_scanner_node(state: AgentState) -> AgentState:
     state.node_path.append("output_scanner")
 
     if not state.principal or not state.draft_response:
+        return state
+
+    # OUTPUT_SCANNER: skip scan when disabled in eval ablation
+    if not settings.protection_enabled("output_scanner"):
+        state.final_response = state.draft_response
         return state
 
     flags = scan_output_for_leaks(state.draft_response, state.principal)
