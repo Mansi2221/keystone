@@ -59,7 +59,8 @@ class Employee(Base):
     manager: Mapped["Employee | None"] = relationship(remote_side="Employee.id")
     salary_records: Mapped[list["Salary"]] = relationship(back_populates="employee")
     performance_reviews: Mapped[list["PerformanceReview"]] = relationship(
-        back_populates="employee"
+        back_populates="employee",
+        foreign_keys="[PerformanceReview.employee_id]",
     )
     leave_records: Mapped[list["LeaveRecord"]] = relationship(back_populates="employee")
 

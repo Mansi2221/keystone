@@ -138,7 +138,7 @@ CREATE POLICY comment_select ON ticket_comments FOR SELECT
 -- Documents visible if user's groups overlap with access_groups
 CREATE POLICY doc_access ON documents FOR SELECT
     USING (
-        access_groups && string_to_array(current_setting('app.groups', true), ',')::text[]
+        access_groups && string_to_array(current_setting('app.groups', true), ',')::varchar[]
         OR current_setting('app.role', true) = 'executive'
         OR owner_id = current_setting('app.user_id', true)::int
     );
@@ -146,7 +146,7 @@ CREATE POLICY doc_access ON documents FOR SELECT
 -- Document chunks follow document access
 CREATE POLICY chunk_access ON document_chunks FOR SELECT
     USING (
-        access_groups && string_to_array(current_setting('app.groups', true), ',')::text[]
+        access_groups && string_to_array(current_setting('app.groups', true), ',')::varchar[]
         OR current_setting('app.role', true) = 'executive'
     );
 
@@ -222,11 +222,18 @@ CREATE POLICY leave_hr_exec ON leave_records FOR SELECT
 def apply_rls_policies() -> None:
     """Apply all RLS policies to the database.
 
-    Should be run after tables are created and seeded.
+    Uses a direct psycopg connection with autocommit to execute the multi-statement
+    RLS SQL block. SQLAlchemy's text() can't handle multi-statement SQL in psycopg3.
     """
-    with engine.connect() as conn:
-        # Drop existing policies first to allow re-running
-        conn.execute(text("""
+    import psycopg
+    from company.config import settings
+
+    raw_url = settings.raw_database_url
+    with psycopg.connect(raw_url, autocommit=True) as conn:
+        cur = conn.cursor()
+
+        # Drop existing policies first
+        cur.execute("""
             DO $$
             DECLARE
                 pol RECORD;
@@ -238,25 +245,53 @@ def apply_rls_policies() -> None:
                     EXECUTE format('DROP POLICY IF EXISTS %I ON %I', pol.policyname, pol.tablename);
                 END LOOP;
             END $$;
-        """))
+        """)
 
-        # Disable RLS first (to allow clean re-enable)
+        # Disable RLS on all tables first
         tables_with_rls = [
             "salaries", "performance_reviews", "termination_records",
             "tickets", "ticket_comments", "documents", "document_chunks",
             "chat_channels", "chat_messages", "deals", "leave_records",
         ]
         for table in tables_with_rls:
-            conn.execute(text(f"ALTER TABLE {table} DISABLE ROW LEVEL SECURITY"))
+            cur.execute(f"ALTER TABLE {table} DISABLE ROW LEVEL SECURITY")
 
-        # Now apply all policies
-        for statement in RLS_SETUP_SQL.split(";"):
-            stmt = statement.strip()
-            if stmt and not stmt.startswith("--"):
-                conn.execute(text(stmt))
+        # Split RLS_SETUP_SQL into individual statements.
+        # Track parenthesis depth so we don't split inside subqueries.
+        stmts = _split_sql_statements(RLS_SETUP_SQL)
+        for stmt in stmts:
+            cur.execute(stmt)
+        cur.close()
 
-        conn.commit()
     logger.info("RLS policies applied successfully")
+
+
+def _split_sql_statements(sql: str) -> list[str]:
+    """Split multi-statement SQL into individual statements.
+
+    Handles statements that contain subqueries with semicolons
+    by tracking parenthesis depth.
+    """
+    stmts = []
+    current: list[str] = []
+    depth = 0
+    for line in sql.split("\n"):
+        stripped = line.strip()
+        if not stripped or stripped.startswith("--"):
+            continue
+        current.append(line)
+        depth += line.count("(") - line.count(")")
+        if stripped.endswith(";") and depth <= 0:
+            stmt = "\n".join(current).strip().rstrip(";").strip()
+            if stmt:
+                stmts.append(stmt)
+            current = []
+            depth = 0
+    if current:
+        stmt = "\n".join(current).strip().rstrip(";").strip()
+        if stmt:
+            stmts.append(stmt)
+    return stmts
 
 
 @contextmanager
@@ -268,21 +303,18 @@ def rls_session(principal: Principal) -> Generator[Session, None, None]:
     """
     with Session(engine) as session:
         with session.begin():
-            # SET LOCAL only lasts for the current transaction
-            session.execute(
-                text("SET LOCAL app.user_id = :uid"),
-                {"uid": str(principal.user_id)},
+            # SET LOCAL only lasts for the current transaction.
+            # psycopg3 doesn't support parameterized SET, so we use
+            # quote_literal via format to safely inject values.
+            uid = str(int(principal.user_id))  # Ensure it's a safe int
+            role = principal.role.replace("'", "''")
+            groups = ",".join(principal.groups).replace("'", "''")
+            rids = (
+                ",".join(str(int(r)) for r in principal.report_ids)
+                if principal.report_ids else "0"
             )
-            session.execute(
-                text("SET LOCAL app.role = :role"),
-                {"role": principal.role},
-            )
-            session.execute(
-                text("SET LOCAL app.groups = :groups"),
-                {"groups": ",".join(principal.groups)},
-            )
-            session.execute(
-                text("SET LOCAL app.report_ids = :rids"),
-                {"rids": ",".join(str(r) for r in principal.report_ids) if principal.report_ids else "0"},
-            )
+            session.execute(text(f"SET LOCAL app.user_id = '{uid}'"))
+            session.execute(text(f"SET LOCAL app.role = '{role}'"))
+            session.execute(text(f"SET LOCAL app.groups = '{groups}'"))
+            session.execute(text(f"SET LOCAL app.report_ids = '{rids}'"))
             yield session

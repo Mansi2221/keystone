@@ -21,7 +21,7 @@ def db_available() -> bool:
     """Check if test database is available."""
     url = os.environ.get(
         "TEST_DATABASE_URL",
-        "postgresql://keystone:keystone_dev_password@localhost:5432/keystone",
+        "postgresql://keystone_app:keystone_app_password@localhost:5433/keystone",
     )
     try:
         engine = create_engine(url)
@@ -53,7 +53,7 @@ class TestRLSSalaries:
         """An employee should see their own salary only."""
         url = os.environ.get(
             "TEST_DATABASE_URL",
-            "postgresql://keystone:keystone_dev_password@localhost:5432/keystone",
+            "postgresql://keystone_app:keystone_app_password@localhost:5433/keystone",
         )
         engine = create_engine(url)
         with engine.connect() as conn:
@@ -77,7 +77,7 @@ class TestRLSSalaries:
         """A contractor should see no salary records."""
         url = os.environ.get(
             "TEST_DATABASE_URL",
-            "postgresql://keystone:keystone_dev_password@localhost:5432/keystone",
+            "postgresql://keystone_app:keystone_app_password@localhost:5433/keystone",
         )
         engine = create_engine(url)
         with engine.connect() as conn:
@@ -95,7 +95,7 @@ class TestRLSSalaries:
         """HR partner should see all salary records."""
         url = os.environ.get(
             "TEST_DATABASE_URL",
-            "postgresql://keystone:keystone_dev_password@localhost:5432/keystone",
+            "postgresql://keystone_app:keystone_app_password@localhost:5433/keystone",
         )
         engine = create_engine(url)
         with engine.connect() as conn:
@@ -114,7 +114,7 @@ class TestRLSSalaries:
         """Executive should see all salary records."""
         url = os.environ.get(
             "TEST_DATABASE_URL",
-            "postgresql://keystone:keystone_dev_password@localhost:5432/keystone",
+            "postgresql://keystone_app:keystone_app_password@localhost:5433/keystone",
         )
         engine = create_engine(url)
         with engine.connect() as conn:
@@ -137,7 +137,7 @@ class TestRLSDocuments:
         """An IC should not see board minutes."""
         url = os.environ.get(
             "TEST_DATABASE_URL",
-            "postgresql://keystone:keystone_dev_password@localhost:5432/keystone",
+            "postgresql://keystone_app:keystone_app_password@localhost:5433/keystone",
         )
         engine = create_engine(url)
         with engine.connect() as conn:
@@ -157,7 +157,7 @@ class TestRLSDocuments:
         """An executive should see board minutes."""
         url = os.environ.get(
             "TEST_DATABASE_URL",
-            "postgresql://keystone:keystone_dev_password@localhost:5432/keystone",
+            "postgresql://keystone_app:keystone_app_password@localhost:5433/keystone",
         )
         engine = create_engine(url)
         with engine.connect() as conn:
@@ -182,7 +182,7 @@ class TestRLSDeals:
         """A contractor should see no deals."""
         url = os.environ.get(
             "TEST_DATABASE_URL",
-            "postgresql://keystone:keystone_dev_password@localhost:5432/keystone",
+            "postgresql://keystone_app:keystone_app_password@localhost:5433/keystone",
         )
         engine = create_engine(url)
         with engine.connect() as conn:
@@ -205,7 +205,7 @@ class TestRLSChat:
         """Non-member should not see private channels."""
         url = os.environ.get(
             "TEST_DATABASE_URL",
-            "postgresql://keystone:keystone_dev_password@localhost:5432/keystone",
+            "postgresql://keystone_app:keystone_app_password@localhost:5433/keystone",
         )
         engine = create_engine(url)
         with engine.connect() as conn:
@@ -232,7 +232,7 @@ class TestRLSTickets:
         """Contractor should only see their own tickets."""
         url = os.environ.get(
             "TEST_DATABASE_URL",
-            "postgresql://keystone:keystone_dev_password@localhost:5432/keystone",
+            "postgresql://keystone_app:keystone_app_password@localhost:5433/keystone",
         )
         engine = create_engine(url)
         with engine.connect() as conn:

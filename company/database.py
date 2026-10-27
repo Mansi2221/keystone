@@ -35,6 +35,23 @@ def reset_db() -> None:
     """Drop and recreate all tables. Used during seeding."""
     from company.models import Base
 
+    # Drop all RLS policies first — they reference tables and block DROP TABLE
+    with engine.connect() as conn:
+        conn.execute(text("""
+            DO $$
+            DECLARE
+                pol RECORD;
+            BEGIN
+                FOR pol IN
+                    SELECT policyname, tablename FROM pg_policies
+                    WHERE schemaname = 'public'
+                LOOP
+                    EXECUTE format('DROP POLICY IF EXISTS %I ON %I', pol.policyname, pol.tablename);
+                END LOOP;
+            END $$;
+        """))
+        conn.commit()
+
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
     logger.info("Database reset complete.")

@@ -230,12 +230,25 @@ def seed_all() -> None:
 def main() -> None:
     seed_all()
 
+    # Dispose the SQLAlchemy engine pool to release all connections
+    # before applying RLS (ALTER TABLE needs exclusive access).
+    from company.database import engine
+    engine.dispose()
+
     # Apply RLS policies after seeding
     from company.rls import apply_rls_policies
 
     logger.info("Applying RLS policies...")
     apply_rls_policies()
     logger.info("RLS policies applied.")
+
+    # Grant keystone_app role access to all tables (RLS still applies)
+    from company.database import execute_raw
+
+    logger.info("Granting keystone_app permissions...")
+    execute_raw("GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO keystone_app")
+    execute_raw("GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO keystone_app")
+    logger.info("keystone_app permissions granted.")
 
 
 if __name__ == "__main__":

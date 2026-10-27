@@ -19,6 +19,9 @@ build/
 # Seed cache
 .seed_cache/
 
+# LLM response cache
+.llm_cache/
+
 # IDE
 .vscode/
 .idea/

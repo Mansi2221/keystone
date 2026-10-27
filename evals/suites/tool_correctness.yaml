@@ -1,83 +1,1170 @@
-# Tool-Call Correctness Suite
-# ~100 cases: expected tools, arguments, and order
 name: tool_correctness
-version: "1.0"
+version: '2.0'
 description: Verify the agent calls the right tools with correct arguments
 scoring: deterministic
-
 cases:
-  - id: tc-001
-    user: {role: individual_contributor, employee_id: 20}
-    message: "Search for employees named Jordan"
-    expected_tools: [hr_search_employees]
-    expected_args:
-      hr_search_employees: {query: "Jordan"}
-    tags: [hr, search]
-
-  - id: tc-002
-    user: {role: individual_contributor, employee_id: 20}
-    message: "Show me ticket TKT-0042"
-    expected_tools: [tickets_get]
-    expected_args:
-      tickets_get: {ticket_id: "TKT-0042"}
-    tags: [tickets, get]
-
-  - id: tc-003
-    user: {role: individual_contributor, employee_id: 20}
-    message: "Find the Employee Code of Conduct document"
-    expected_tools: [docs_search]
-    expected_args:
-      docs_search: {query: "Employee Code of Conduct"}
-    tags: [documents, search]
-
-  - id: tc-004
-    user: {role: sales_rep, employee_id: 10}
-    message: "Show me deals in the negotiation stage"
-    expected_tools: [crm_search_deals]
-    expected_args:
-      crm_search_deals: {stage: "negotiation"}
-    tags: [crm, filter]
-
-  - id: tc-005
-    user: {role: individual_contributor, employee_id: 20}
-    message: "What channels are available?"
-    expected_tools: [chat_list_channels]
-    tags: [chat, list]
-
-  - id: tc-006
-    user: {role: hr_partner, employee_id: 12}
-    message: "Get performance reviews for employee 20"
-    expected_tools: [hr_get_reviews]
-    expected_args:
-      hr_get_reviews: {employee_id: 20}
-    tags: [hr, reviews]
-
-  - id: tc-007
-    user: {role: executive, employee_id: 1}
-    message: "Search for critical priority tickets that are still open"
-    expected_tools: [tickets_search]
-    expected_args:
-      tickets_search: {priority: "critical", status: "open"}
-    tags: [tickets, filter]
-
-  - id: tc-008
-    user: {role: individual_contributor, employee_id: 20}
-    message: "Show my leave requests"
-    expected_tools: [hr_get_leave]
-    expected_args:
-      hr_get_leave: {employee_id: 20}
-    tags: [hr, leave]
-
-  - id: tc-009
-    user: {role: manager, employee_id: 7}
-    message: "Who reports to me?"
-    expected_tools: [hr_get_org_chart]
-    tags: [hr, org_chart]
-
-  - id: tc-010
-    user: {role: sales_rep, employee_id: 10}
-    message: "Find customers in the Manufacturing industry"
-    expected_tools: [crm_list_customers]
-    expected_args:
-      crm_list_customers: {industry: "Manufacturing"}
-    tags: [crm, customers]
+- id: tc-001
+  user:
+    role: individual_contributor
+    employee_id: 17
+  message: Search for employees named Natalie
+  expected_tools:
+  - hr_search_employees
+  expected_args:
+    hr_search_employees:
+      query: Natalie
+  tags:
+  - hr
+  - search
+- id: tc-002
+  user:
+    role: individual_contributor
+    employee_id: 56
+  message: Search for employees named Cynthia
+  expected_tools:
+  - hr_search_employees
+  expected_args:
+    hr_search_employees:
+      query: Cynthia
+  tags:
+  - hr
+  - search
+- id: tc-003
+  user:
+    role: finance_analyst
+    employee_id: 65
+  message: Search for employees named Jeffrey
+  expected_tools:
+  - hr_search_employees
+  expected_args:
+    hr_search_employees:
+      query: Jeffrey
+  tags:
+  - hr
+  - search
+- id: tc-004
+  user:
+    role: individual_contributor
+    employee_id: 112
+  message: Search for employees named Eric
+  expected_tools:
+  - hr_search_employees
+  expected_args:
+    hr_search_employees:
+      query: Eric
+  tags:
+  - hr
+  - search
+- id: tc-005
+  user:
+    role: manager
+    employee_id: 8
+  message: Search for employees named Alec
+  expected_tools:
+  - hr_search_employees
+  expected_args:
+    hr_search_employees:
+      query: Alec
+  tags:
+  - hr
+  - search
+- id: tc-006
+  user:
+    role: individual_contributor
+    employee_id: 107
+  message: Search for employees named Joseph
+  expected_tools:
+  - hr_search_employees
+  expected_args:
+    hr_search_employees:
+      query: Joseph
+  tags:
+  - hr
+  - search
+- id: tc-007
+  user:
+    role: individual_contributor
+    employee_id: 16
+  message: Search for employees named Sarah
+  expected_tools:
+  - hr_search_employees
+  expected_args:
+    hr_search_employees:
+      query: Sarah
+  tags:
+  - hr
+  - search
+- id: tc-008
+  user:
+    role: finance_analyst
+    employee_id: 67
+  message: Search for employees named Breanna
+  expected_tools:
+  - hr_search_employees
+  expected_args:
+    hr_search_employees:
+      query: Breanna
+  tags:
+  - hr
+  - search
+- id: tc-009
+  user:
+    role: individual_contributor
+    employee_id: 20
+  message: Search for employees named Joseph
+  expected_tools:
+  - hr_search_employees
+  expected_args:
+    hr_search_employees:
+      query: Joseph
+  tags:
+  - hr
+  - search
+- id: tc-010
+  user:
+    role: individual_contributor
+    employee_id: 39
+  message: Search for employees named Joyce
+  expected_tools:
+  - hr_search_employees
+  expected_args:
+    hr_search_employees:
+      query: Joyce
+  tags:
+  - hr
+  - search
+- id: tc-011
+  user:
+    role: individual_contributor
+    employee_id: 21
+  message: Show me details for employee 22
+  expected_tools:
+  - hr_get_employee
+  expected_args:
+    hr_get_employee:
+      employee_id: 22
+  tags:
+  - hr
+  - get
+- id: tc-012
+  user:
+    role: manager
+    employee_id: 91
+  message: Show me details for employee 42
+  expected_tools:
+  - hr_get_employee
+  expected_args:
+    hr_get_employee:
+      employee_id: 42
+  tags:
+  - hr
+  - get
+- id: tc-013
+  user:
+    role: individual_contributor
+    employee_id: 45
+  message: Show me details for employee 29
+  expected_tools:
+  - hr_get_employee
+  expected_args:
+    hr_get_employee:
+      employee_id: 29
+  tags:
+  - hr
+  - get
+- id: tc-014
+  user:
+    role: individual_contributor
+    employee_id: 115
+  message: Show me details for employee 67
+  expected_tools:
+  - hr_get_employee
+  expected_args:
+    hr_get_employee:
+      employee_id: 67
+  tags:
+  - hr
+  - get
+- id: tc-015
+  user:
+    role: individual_contributor
+    employee_id: 109
+  message: Show me details for employee 37
+  expected_tools:
+  - hr_get_employee
+  expected_args:
+    hr_get_employee:
+      employee_id: 37
+  tags:
+  - hr
+  - get
+- id: tc-016
+  user:
+    role: individual_contributor
+    employee_id: 33
+  message: Show me details for employee 11
+  expected_tools:
+  - hr_get_employee
+  expected_args:
+    hr_get_employee:
+      employee_id: 11
+  tags:
+  - hr
+  - get
+- id: tc-017
+  user:
+    role: hr_partner
+    employee_id: 82
+  message: Show me details for employee 26
+  expected_tools:
+  - hr_get_employee
+  expected_args:
+    hr_get_employee:
+      employee_id: 26
+  tags:
+  - hr
+  - get
+- id: tc-018
+  user:
+    role: individual_contributor
+    employee_id: 36
+  message: Show me details for employee 71
+  expected_tools:
+  - hr_get_employee
+  expected_args:
+    hr_get_employee:
+      employee_id: 71
+  tags:
+  - hr
+  - get
+- id: tc-019
+  user:
+    role: hr_partner
+    employee_id: 82
+  message: Show salary for employee 81
+  expected_tools:
+  - hr_get_salary
+  expected_args:
+    hr_get_salary:
+      employee_id: 81
+  tags:
+  - hr
+  - salary
+- id: tc-020
+  user:
+    role: executive
+    employee_id: 2
+  message: Show salary for employee 79
+  expected_tools:
+  - hr_get_salary
+  expected_args:
+    hr_get_salary:
+      employee_id: 79
+  tags:
+  - hr
+  - salary
+- id: tc-021
+  user:
+    role: executive
+    employee_id: 6
+  message: Show salary for employee 12
+  expected_tools:
+  - hr_get_salary
+  expected_args:
+    hr_get_salary:
+      employee_id: 12
+  tags:
+  - hr
+  - salary
+- id: tc-022
+  user:
+    role: executive
+    employee_id: 6
+  message: Show salary for employee 83
+  expected_tools:
+  - hr_get_salary
+  expected_args:
+    hr_get_salary:
+      employee_id: 83
+  tags:
+  - hr
+  - salary
+- id: tc-023
+  user:
+    role: hr_partner
+    employee_id: 82
+  message: Show salary for employee 76
+  expected_tools:
+  - hr_get_salary
+  expected_args:
+    hr_get_salary:
+      employee_id: 76
+  tags:
+  - hr
+  - salary
+- id: tc-024
+  user:
+    role: hr_partner
+    employee_id: 82
+  message: Show salary for employee 22
+  expected_tools:
+  - hr_get_salary
+  expected_args:
+    hr_get_salary:
+      employee_id: 22
+  tags:
+  - hr
+  - salary
+- id: tc-025
+  user:
+    role: executive
+    employee_id: 3
+  message: Show salary for employee 108
+  expected_tools:
+  - hr_get_salary
+  expected_args:
+    hr_get_salary:
+      employee_id: 108
+  tags:
+  - hr
+  - salary
+- id: tc-026
+  user:
+    role: hr_partner
+    employee_id: 80
+  message: Show salary for employee 106
+  expected_tools:
+  - hr_get_salary
+  expected_args:
+    hr_get_salary:
+      employee_id: 106
+  tags:
+  - hr
+  - salary
+- id: tc-027
+  user:
+    role: individual_contributor
+    employee_id: 99
+  message: Show me ticket TKT-0028
+  expected_tools:
+  - tickets_get
+  expected_args:
+    tickets_get:
+      ticket_id: TKT-0028
+  tags:
+  - tickets
+  - get
+- id: tc-028
+  user:
+    role: individual_contributor
+    employee_id: 74
+  message: Show me ticket TKT-0001
+  expected_tools:
+  - tickets_get
+  expected_args:
+    tickets_get:
+      ticket_id: TKT-0001
+  tags:
+  - tickets
+  - get
+- id: tc-029
+  user:
+    role: individual_contributor
+    employee_id: 54
+  message: Show me ticket TKT-0003
+  expected_tools:
+  - tickets_get
+  expected_args:
+    tickets_get:
+      ticket_id: TKT-0003
+  tags:
+  - tickets
+  - get
+- id: tc-030
+  user:
+    role: hr_partner
+    employee_id: 80
+  message: Show me ticket TKT-0002
+  expected_tools:
+  - tickets_get
+  expected_args:
+    tickets_get:
+      ticket_id: TKT-0002
+  tags:
+  - tickets
+  - get
+- id: tc-031
+  user:
+    role: hr_partner
+    employee_id: 82
+  message: Show me ticket TKT-0021
+  expected_tools:
+  - tickets_get
+  expected_args:
+    tickets_get:
+      ticket_id: TKT-0021
+  tags:
+  - tickets
+  - get
+- id: tc-032
+  user:
+    role: executive
+    employee_id: 4
+  message: Show me ticket TKT-0025
+  expected_tools:
+  - tickets_get
+  expected_args:
+    tickets_get:
+      ticket_id: TKT-0025
+  tags:
+  - tickets
+  - get
+- id: tc-033
+  user:
+    role: finance_analyst
+    employee_id: 64
+  message: Show me ticket TKT-0019
+  expected_tools:
+  - tickets_get
+  expected_args:
+    tickets_get:
+      ticket_id: TKT-0019
+  tags:
+  - tickets
+  - get
+- id: tc-034
+  user:
+    role: individual_contributor
+    employee_id: 114
+  message: Show me ticket TKT-0009
+  expected_tools:
+  - tickets_get
+  expected_args:
+    tickets_get:
+      ticket_id: TKT-0009
+  tags:
+  - tickets
+  - get
+- id: tc-035
+  user:
+    role: hr_partner
+    employee_id: 81
+  message: Show me ticket TKT-0026
+  expected_tools:
+  - tickets_get
+  expected_args:
+    tickets_get:
+      ticket_id: TKT-0026
+  tags:
+  - tickets
+  - get
+- id: tc-036
+  user:
+    role: individual_contributor
+    employee_id: 70
+  message: Show me ticket TKT-0007
+  expected_tools:
+  - tickets_get
+  expected_args:
+    tickets_get:
+      ticket_id: TKT-0007
+  tags:
+  - tickets
+  - get
+- id: tc-037
+  user:
+    role: individual_contributor
+    employee_id: 38
+  message: Search for tickets about network
+  expected_tools:
+  - tickets_search
+  expected_args:
+    tickets_search:
+      query: network
+  tags:
+  - tickets
+  - search
+- id: tc-038
+  user:
+    role: individual_contributor
+    employee_id: 83
+  message: Search for tickets about password
+  expected_tools:
+  - tickets_search
+  expected_args:
+    tickets_search:
+      query: password
+  tags:
+  - tickets
+  - search
+- id: tc-039
+  user:
+    role: individual_contributor
+    employee_id: 39
+  message: Search for tickets about deploy
+  expected_tools:
+  - tickets_search
+  expected_args:
+    tickets_search:
+      query: deploy
+  tags:
+  - tickets
+  - search
+- id: tc-040
+  user:
+    role: manager
+    employee_id: 62
+  message: Search for tickets about bug
+  expected_tools:
+  - tickets_search
+  expected_args:
+    tickets_search:
+      query: bug
+  tags:
+  - tickets
+  - search
+- id: tc-041
+  user:
+    role: individual_contributor
+    employee_id: 32
+  message: Search for tickets about access
+  expected_tools:
+  - tickets_search
+  expected_args:
+    tickets_search:
+      query: access
+  tags:
+  - tickets
+  - search
+- id: tc-042
+  user:
+    role: individual_contributor
+    employee_id: 104
+  message: Search for tickets about database
+  expected_tools:
+  - tickets_search
+  expected_args:
+    tickets_search:
+      query: database
+  tags:
+  - tickets
+  - search
+- id: tc-043
+  user:
+    role: individual_contributor
+    employee_id: 104
+  message: Search for tickets about login
+  expected_tools:
+  - tickets_search
+  expected_args:
+    tickets_search:
+      query: login
+  tags:
+  - tickets
+  - search
+- id: tc-044
+  user:
+    role: individual_contributor
+    employee_id: 88
+  message: Search for tickets about server
+  expected_tools:
+  - tickets_search
+  expected_args:
+    tickets_search:
+      query: server
+  tags:
+  - tickets
+  - search
+- id: tc-045
+  user:
+    role: individual_contributor
+    employee_id: 52
+  message: Search for documents about policy
+  expected_tools:
+  - docs_search
+  expected_args:
+    docs_search:
+      query: policy
+  tags:
+  - docs
+  - search
+- id: tc-046
+  user:
+    role: individual_contributor
+    employee_id: 39
+  message: Search for documents about handbook
+  expected_tools:
+  - docs_search
+  expected_args:
+    docs_search:
+      query: handbook
+  tags:
+  - docs
+  - search
+- id: tc-047
+  user:
+    role: individual_contributor
+    employee_id: 59
+  message: Search for documents about onboarding
+  expected_tools:
+  - docs_search
+  expected_args:
+    docs_search:
+      query: onboarding
+  tags:
+  - docs
+  - search
+- id: tc-048
+  user:
+    role: sales_rep
+    employee_id: 10
+  message: Search for documents about security
+  expected_tools:
+  - docs_search
+  expected_args:
+    docs_search:
+      query: security
+  tags:
+  - docs
+  - search
+- id: tc-049
+  user:
+    role: contractor
+    employee_id: 89
+  message: Search for documents about budget
+  expected_tools:
+  - docs_search
+  expected_args:
+    docs_search:
+      query: budget
+  tags:
+  - docs
+  - search
+- id: tc-050
+  user:
+    role: manager
+    employee_id: 8
+  message: Search for documents about quarterly
+  expected_tools:
+  - docs_search
+  expected_args:
+    docs_search:
+      query: quarterly
+  tags:
+  - docs
+  - search
+- id: tc-051
+  user:
+    role: individual_contributor
+    employee_id: 21
+  message: Search for documents about review
+  expected_tools:
+  - docs_search
+  expected_args:
+    docs_search:
+      query: review
+  tags:
+  - docs
+  - search
+- id: tc-052
+  user:
+    role: individual_contributor
+    employee_id: 44
+  message: Show messages from the finance-general channel
+  expected_tools:
+  - chat_get_messages
+  tags:
+  - chat
+  - messages
+- id: tc-053
+  user:
+    role: contractor
+    employee_id: 78
+  message: Show messages from the ops-fleet channel
+  expected_tools:
+  - chat_get_messages
+  tags:
+  - chat
+  - messages
+- id: tc-054
+  user:
+    role: individual_contributor
+    employee_id: 19
+  message: Show messages from the hr-general channel
+  expected_tools:
+  - chat_get_messages
+  tags:
+  - chat
+  - messages
+- id: tc-055
+  user:
+    role: individual_contributor
+    employee_id: 41
+  message: Show messages from the ops-general channel
+  expected_tools:
+  - chat_get_messages
+  tags:
+  - chat
+  - messages
+- id: tc-056
+  user:
+    role: individual_contributor
+    employee_id: 111
+  message: Show messages from the sales-wins channel
+  expected_tools:
+  - chat_get_messages
+  tags:
+  - chat
+  - messages
+- id: tc-057
+  user:
+    role: executive
+    employee_id: 2
+  message: Show me deals in the prospecting stage
+  expected_tools:
+  - crm_search_deals
+  expected_args:
+    crm_search_deals:
+      stage: prospecting
+  tags:
+  - crm
+  - filter
+- id: tc-058
+  user:
+    role: executive
+    employee_id: 2
+  message: Show me deals in the negotiation stage
+  expected_tools:
+  - crm_search_deals
+  expected_args:
+    crm_search_deals:
+      stage: negotiation
+  tags:
+  - crm
+  - filter
+- id: tc-059
+  user:
+    role: executive
+    employee_id: 3
+  message: Show me deals in the closed_won stage
+  expected_tools:
+  - crm_search_deals
+  expected_args:
+    crm_search_deals:
+      stage: closed_won
+  tags:
+  - crm
+  - filter
+- id: tc-060
+  user:
+    role: sales_rep
+    employee_id: 11
+  message: Show me deals in the proposal stage
+  expected_tools:
+  - crm_search_deals
+  expected_args:
+    crm_search_deals:
+      stage: proposal
+  tags:
+  - crm
+  - filter
+- id: tc-061
+  user:
+    role: individual_contributor
+    employee_id: 98
+  message: Show my leave records
+  expected_tools:
+  - hr_get_leave
+  tags:
+  - hr
+  - leave
+- id: tc-062
+  user:
+    role: individual_contributor
+    employee_id: 48
+  message: Show my leave records
+  expected_tools:
+  - hr_get_leave
+  tags:
+  - hr
+  - leave
+- id: tc-063
+  user:
+    role: finance_analyst
+    employee_id: 66
+  message: Show my leave records
+  expected_tools:
+  - hr_get_leave
+  tags:
+  - hr
+  - leave
+- id: tc-064
+  user:
+    role: individual_contributor
+    employee_id: 72
+  message: Show my leave records
+  expected_tools:
+  - hr_get_leave
+  tags:
+  - hr
+  - leave
+- id: tc-065
+  user:
+    role: individual_contributor
+    employee_id: 14
+  message: Show my leave records
+  expected_tools:
+  - hr_get_leave
+  tags:
+  - hr
+  - leave
+- id: tc-066
+  user:
+    role: individual_contributor
+    employee_id: 41
+  message: Show the organization chart
+  expected_tools:
+  - hr_get_org_chart
+  tags:
+  - hr
+  - org_chart
+- id: tc-067
+  user:
+    role: individual_contributor
+    employee_id: 31
+  message: Show the organization chart
+  expected_tools:
+  - hr_get_org_chart
+  tags:
+  - hr
+  - org_chart
+- id: tc-068
+  user:
+    role: individual_contributor
+    employee_id: 60
+  message: Show the organization chart
+  expected_tools:
+  - hr_get_org_chart
+  tags:
+  - hr
+  - org_chart
+- id: tc-069
+  user:
+    role: individual_contributor
+    employee_id: 16
+  message: List all chat channels
+  expected_tools:
+  - chat_list_channels
+  tags:
+  - chat
+  - list
+- id: tc-070
+  user:
+    role: individual_contributor
+    employee_id: 35
+  message: List all chat channels
+  expected_tools:
+  - chat_list_channels
+  tags:
+  - chat
+  - list
+- id: tc-071
+  user:
+    role: individual_contributor
+    employee_id: 58
+  message: List all chat channels
+  expected_tools:
+  - chat_list_channels
+  tags:
+  - chat
+  - list
+- id: tc-072
+  user:
+    role: individual_contributor
+    employee_id: 32
+  message: List all chat channels
+  expected_tools:
+  - chat_list_channels
+  tags:
+  - chat
+  - list
+- id: tc-073
+  user:
+    role: individual_contributor
+    employee_id: 19
+  message: List all chat channels
+  expected_tools:
+  - chat_list_channels
+  tags:
+  - chat
+  - list
+- id: tc-074
+  user:
+    role: individual_contributor
+    employee_id: 13
+  message: List all chat channels
+  expected_tools:
+  - chat_list_channels
+  tags:
+  - chat
+  - list
+- id: tc-075
+  user:
+    role: manager
+    employee_id: 7
+  message: List all chat channels
+  expected_tools:
+  - chat_list_channels
+  tags:
+  - chat
+  - list
+- id: tc-076
+  user:
+    role: individual_contributor
+    employee_id: 38
+  message: List all chat channels
+  expected_tools:
+  - chat_list_channels
+  tags:
+  - chat
+  - list
+- id: tc-077
+  user:
+    role: individual_contributor
+    employee_id: 50
+  message: List all chat channels
+  expected_tools:
+  - chat_list_channels
+  tags:
+  - chat
+  - list
+- id: tc-078
+  user:
+    role: individual_contributor
+    employee_id: 111
+  message: List all chat channels
+  expected_tools:
+  - chat_list_channels
+  tags:
+  - chat
+  - list
+- id: tc-079
+  user:
+    role: manager
+    employee_id: 79
+  message: List all chat channels
+  expected_tools:
+  - chat_list_channels
+  tags:
+  - chat
+  - list
+- id: tc-080
+  user:
+    role: individual_contributor
+    employee_id: 54
+  message: List all chat channels
+  expected_tools:
+  - chat_list_channels
+  tags:
+  - chat
+  - list
+- id: tc-081
+  user:
+    role: individual_contributor
+    employee_id: 32
+  message: List all chat channels
+  expected_tools:
+  - chat_list_channels
+  tags:
+  - chat
+  - list
+- id: tc-082
+  user:
+    role: individual_contributor
+    employee_id: 111
+  message: List all chat channels
+  expected_tools:
+  - chat_list_channels
+  tags:
+  - chat
+  - list
+- id: tc-083
+  user:
+    role: contractor
+    employee_id: 116
+  message: List all chat channels
+  expected_tools:
+  - chat_list_channels
+  tags:
+  - chat
+  - list
+- id: tc-084
+  user:
+    role: individual_contributor
+    employee_id: 21
+  message: List all chat channels
+  expected_tools:
+  - chat_list_channels
+  tags:
+  - chat
+  - list
+- id: tc-085
+  user:
+    role: individual_contributor
+    employee_id: 105
+  message: List all chat channels
+  expected_tools:
+  - chat_list_channels
+  tags:
+  - chat
+  - list
+- id: tc-086
+  user:
+    role: individual_contributor
+    employee_id: 42
+  message: List all chat channels
+  expected_tools:
+  - chat_list_channels
+  tags:
+  - chat
+  - list
+- id: tc-087
+  user:
+    role: individual_contributor
+    employee_id: 74
+  message: List all chat channels
+  expected_tools:
+  - chat_list_channels
+  tags:
+  - chat
+  - list
+- id: tc-088
+  user:
+    role: individual_contributor
+    employee_id: 93
+  message: List all chat channels
+  expected_tools:
+  - chat_list_channels
+  tags:
+  - chat
+  - list
+- id: tc-089
+  user:
+    role: individual_contributor
+    employee_id: 41
+  message: List all chat channels
+  expected_tools:
+  - chat_list_channels
+  tags:
+  - chat
+  - list
+- id: tc-090
+  user:
+    role: individual_contributor
+    employee_id: 25
+  message: List all chat channels
+  expected_tools:
+  - chat_list_channels
+  tags:
+  - chat
+  - list
+- id: tc-091
+  user:
+    role: individual_contributor
+    employee_id: 98
+  message: List all chat channels
+  expected_tools:
+  - chat_list_channels
+  tags:
+  - chat
+  - list
+- id: tc-092
+  user:
+    role: individual_contributor
+    employee_id: 21
+  message: List all chat channels
+  expected_tools:
+  - chat_list_channels
+  tags:
+  - chat
+  - list
+- id: tc-093
+  user:
+    role: finance_analyst
+    employee_id: 64
+  message: List all chat channels
+  expected_tools:
+  - chat_list_channels
+  tags:
+  - chat
+  - list
+- id: tc-094
+  user:
+    role: finance_analyst
+    employee_id: 66
+  message: List all chat channels
+  expected_tools:
+  - chat_list_channels
+  tags:
+  - chat
+  - list
+- id: tc-095
+  user:
+    role: individual_contributor
+    employee_id: 60
+  message: List all chat channels
+  expected_tools:
+  - chat_list_channels
+  tags:
+  - chat
+  - list
+- id: tc-096
+  user:
+    role: finance_analyst
+    employee_id: 64
+  message: List all chat channels
+  expected_tools:
+  - chat_list_channels
+  tags:
+  - chat
+  - list
+- id: tc-097
+  user:
+    role: individual_contributor
+    employee_id: 113
+  message: List all chat channels
+  expected_tools:
+  - chat_list_channels
+  tags:
+  - chat
+  - list
+- id: tc-098
+  user:
+    role: individual_contributor
+    employee_id: 40
+  message: List all chat channels
+  expected_tools:
+  - chat_list_channels
+  tags:
+  - chat
+  - list
+- id: tc-099
+  user:
+    role: finance_analyst
+    employee_id: 64
+  message: List all chat channels
+  expected_tools:
+  - chat_list_channels
+  tags:
+  - chat
+  - list
+- id: tc-100
+  user:
+    role: executive
+    employee_id: 3
+  message: List all chat channels
+  expected_tools:
+  - chat_list_channels
+  tags:
+  - chat
+  - list
