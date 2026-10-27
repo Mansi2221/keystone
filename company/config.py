@@ -5,6 +5,32 @@ from pathlib import Path
 from pydantic_settings import BaseSettings
 
 
+# ── Profile presets ───────────────────────────────────────────
+# PROFILE selects default provider/model for agent + judge.
+# Explicit LLM_PROVIDER / JUDGE_PROVIDER in .env override these.
+
+PROFILES = {
+    "local": {
+        "llm_provider": "ollama",
+        "llm_model": "qwen2.5:7b",
+        "judge_provider": "ollama",
+        "judge_model": "qwen2.5:7b",
+    },
+    "free": {
+        "llm_provider": "groq",
+        "llm_model": "qwen/qwen3.8-27b",
+        "judge_provider": "groq",
+        "judge_model": "qwen/qwen3.8-27b",
+    },
+    "paid": {
+        "llm_provider": "openai",
+        "llm_model": "gpt-4o-mini",
+        "judge_provider": "openai",
+        "judge_model": "gpt-4o-mini",
+    },
+}
+
+
 class Settings(BaseSettings):
     """Global settings for Keystone."""
 
@@ -33,11 +59,40 @@ class Settings(BaseSettings):
             f"@{self.postgres_host}:{self.postgres_port}/{self.postgres_db}"
         )
 
-    # LLM
-    llm_provider: str = "openai"
-    llm_model: str = "gpt-4o-mini"
+    # Profile (local / free / paid)
+    profile: str = "local"
+
+    # LLM — global defaults (used by agent unless overridden)
+    llm_provider: str = ""
+    llm_model: str = ""
     openai_api_key: str = ""
     anthropic_api_key: str = ""
+    gemini_api_key: str = ""
+    groq_api_key: str = ""
+
+    # Per-component overrides (blank = use profile or global default)
+    judge_provider: str = ""
+    judge_model: str = ""
+    seed_provider: str = ""
+    seed_model: str = ""
+
+    # Ollama
+    ollama_base_url: str = "http://localhost:11434/v1"
+
+    def _profile_defaults(self) -> dict:
+        return PROFILES.get(self.profile, PROFILES["local"])
+
+    def effective_llm_provider(self) -> str:
+        return self.llm_provider or self._profile_defaults()["llm_provider"]
+
+    def effective_llm_model(self) -> str:
+        return self.llm_model or self._profile_defaults()["llm_model"]
+
+    def effective_judge_provider(self) -> str:
+        return self.judge_provider or self._profile_defaults()["judge_provider"]
+
+    def effective_judge_model(self) -> str:
+        return self.judge_model or self._profile_defaults()["judge_model"]
 
     # Cerbos
     cerbos_host: str = "localhost"

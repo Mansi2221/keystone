@@ -6,7 +6,6 @@ Also provides canary-based leak detection.
 
 import json
 import logging
-import os
 import re
 from typing import Any
 
@@ -27,8 +26,8 @@ def judge_task_success(
     Returns: {"pass": bool, "score": float, "reasoning": str}
     """
     try:
-        provider = os.environ.get("LLM_PROVIDER", "openai")
-        model = os.environ.get("LLM_MODEL", "gpt-4o-mini")
+        from company.llm import invoke_llm
+        from langchain_core.messages import HumanMessage
 
         prompt = f"""You are an evaluation judge. Score whether the agent's response correctly addresses the user's question.
 
@@ -46,15 +45,11 @@ Score on a scale of 0 to 1:
 Output JSON:
 {{"pass": true/false, "score": 0.0-1.0, "reasoning": "brief explanation"}}
 """
-        if provider == "anthropic":
-            from langchain_anthropic import ChatAnthropic
-            llm = ChatAnthropic(model=model, temperature=0)
-        else:
-            from langchain_openai import ChatOpenAI
-            llm = ChatOpenAI(model=model, temperature=0)
-
-        from langchain_core.messages import HumanMessage
-        response = llm.invoke([HumanMessage(content=prompt)])
+        response = invoke_llm(
+            [HumanMessage(content=prompt)],
+            purpose="judge",
+            use_cache=True,
+        )
         text = response.content
 
         # Parse JSON from response

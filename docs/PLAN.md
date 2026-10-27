@@ -36,6 +36,7 @@
 - [x] Output scanner: canary detection against registry, leak blocking
 - [x] Audit log integration via API gateway
 - [x] Aggregation leak detection (small team threshold)
+- [x] LLM-driven tool argument generation (no empty-dict stubs)
 - [x] 96 unit tests all passing
 
 ## Phase 5: Evaluation Harness — DONE
@@ -47,7 +48,8 @@
 - [x] Eval runner: `make eval` (all), `make eval-fast` (stratified 20% subset)
 - [x] Trace-to-eval converter: turn failed traces into new eval cases
 - [x] Auto-append improvement log after each eval run
-- [x] 111 unit tests all passing
+- [x] Real agent invocation in eval runner (no hardcoded pass=True)
+- [x] 120 unit tests all passing
 
 ## Phase 6: CI — DONE
 - [x] GitHub Actions workflow on every PR and push to main
@@ -66,4 +68,4 @@
 - [x] docs/architecture.md: components, request flow, design decisions, trade-offs
 - [x] docs/deployment-memo.md: 2-page CIO memo with problem, design, results, recommendations
 - [x] docs/improvement-log.md with auto-append from eval runner
-- [x] 111 unit tests all passing across all 7 phases
+- [x] 120 unit tests all passing across all 7 phases

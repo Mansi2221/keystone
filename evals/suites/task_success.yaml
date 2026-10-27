@@ -1,162 +1,1611 @@
-# Task Success Suite
-# ~150 cases: realistic questions across all roles with gold answers
 name: task_success
-version: "1.0"
-description: Realistic questions and actions across all roles with gold answers
+version: '2.0'
+description: Realistic questions across all roles with gold answers
 scoring: llm_judge
-
 cases:
-  # --- Employee Directory (all roles) ---
-  - id: ts-001
-    user: {role: individual_contributor, employee_id: 20}
-    message: "How many employees are in the Engineering department?"
-    expected_answer: "Around 28 employees in Engineering"
-    expected_tools: [hr_search_employees]
-    tags: [directory, engineering]
-
-  - id: ts-002
-    user: {role: manager, employee_id: 7}
-    message: "Who is the CTO of the company?"
-    expected_answer: "The CTO is the head of the Engineering department"
-    expected_tools: [hr_search_employees]
-    tags: [directory, executive]
-
-  - id: ts-003
-    user: {role: sales_rep, employee_id: 10}
-    message: "List all managers in the Sales department"
-    expected_answer: "Sales managers include the Sales Manager and Regional Sales Lead"
-    expected_tools: [hr_search_employees]
-    tags: [directory, managers]
-
-  # --- HR: Salary (restricted) ---
-  - id: ts-010
-    user: {role: individual_contributor, employee_id: 20}
-    message: "What is my current salary?"
-    expected_answer: "Should show the employee's own salary"
-    expected_tools: [hr_get_salary]
-    tags: [salary, own_data]
-
-  - id: ts-011
-    user: {role: hr_partner, employee_id: 12}
-    message: "What is the salary for employee 20?"
-    expected_answer: "Should show salary for employee 20 (HR can see all)"
-    expected_tools: [hr_get_salary]
-    tags: [salary, hr_access]
-
-  - id: ts-012
-    user: {role: executive, employee_id: 1}
-    message: "Show me all salary information for the Engineering department"
-    expected_answer: "Should show salaries for engineering employees"
-    expected_tools: [hr_search_employees, hr_get_salary]
-    tags: [salary, executive_access]
-
-  # --- HR: Performance Reviews ---
-  - id: ts-020
-    user: {role: individual_contributor, employee_id: 20}
-    message: "Show me my performance reviews"
-    expected_answer: "Should show the employee's own reviews"
-    expected_tools: [hr_get_reviews]
-    tags: [reviews, own_data]
-
-  - id: ts-021
-    user: {role: hr_partner, employee_id: 12}
-    message: "What were the last performance ratings for employee 20?"
-    expected_answer: "Should show review ratings"
-    expected_tools: [hr_get_reviews]
-    tags: [reviews, hr_access]
-
-  # --- Tickets ---
-  - id: ts-030
-    user: {role: individual_contributor, employee_id: 20}
-    message: "Show me my open tickets"
-    expected_answer: "Should list tickets owned by or assigned to user 20"
-    expected_tools: [tickets_search]
-    tags: [tickets, own_data]
-
-  - id: ts-031
-    user: {role: manager, employee_id: 8}
-    message: "How many critical tickets are currently open?"
-    expected_answer: "Should show count of critical open tickets"
-    expected_tools: [tickets_search]
-    tags: [tickets, priority]
-
-  - id: ts-032
-    user: {role: executive, employee_id: 1}
-    message: "Show me all security incident tickets"
-    expected_answer: "Should list security incident tickets"
-    expected_tools: [tickets_search]
-    tags: [tickets, security, executive_access]
-
-  - id: ts-033
-    user: {role: hr_partner, employee_id: 12}
-    message: "Are there any HR complaint tickets?"
-    expected_answer: "Should list HR complaint tickets"
-    expected_tools: [tickets_search]
-    tags: [tickets, hr_complaints]
-
-  # --- Documents ---
-  - id: ts-040
-    user: {role: individual_contributor, employee_id: 20}
-    message: "Find the remote work policy"
-    expected_answer: "Should find and show the Remote Work Policy document"
-    expected_tools: [docs_search]
-    tags: [documents, policy]
-
-  - id: ts-041
-    user: {role: executive, employee_id: 1}
-    message: "Show me the latest board minutes"
-    expected_answer: "Should show board minutes content"
-    expected_tools: [docs_search, docs_get]
-    tags: [documents, board_minutes, executive_access]
-
-  - id: ts-042
-    user: {role: finance_analyst, employee_id: 15}
-    message: "Find contracts related to fleet maintenance"
-    expected_answer: "Should find fleet maintenance contracts"
-    expected_tools: [docs_search]
-    tags: [documents, contracts, finance]
-
-  # --- Chat ---
-  - id: ts-050
-    user: {role: individual_contributor, employee_id: 20}
-    message: "What channels am I in?"
-    expected_answer: "Should list public and engineering channels"
-    expected_tools: [chat_list_channels]
-    tags: [chat, channels]
-
-  - id: ts-051
-    user: {role: executive, employee_id: 1}
-    message: "What were the recent messages in the leadership-team channel?"
-    expected_answer: "Should show leadership channel messages"
-    expected_tools: [chat_list_channels, chat_get_messages]
-    tags: [chat, private, executive_access]
-
-  # --- CRM ---
-  - id: ts-060
-    user: {role: sales_rep, employee_id: 10}
-    message: "Show me my active deals"
-    expected_answer: "Should list deals owned by the sales rep"
-    expected_tools: [crm_search_deals]
-    tags: [crm, own_deals]
-
-  - id: ts-061
-    user: {role: executive, employee_id: 1}
-    message: "What is the total pipeline value?"
-    expected_answer: "Should aggregate deal values"
-    expected_tools: [crm_search_deals]
-    tags: [crm, executive_access, aggregation]
-
-  # --- Cross-system ---
-  - id: ts-070
-    user: {role: manager, employee_id: 7}
-    message: "Give me a summary of my team's open tickets and any upcoming leave"
-    expected_answer: "Should combine ticket and leave data for the manager's reports"
-    expected_tools: [tickets_search, hr_get_leave]
-    tags: [cross_system, manager]
-
-  - id: ts-071
-    user: {role: executive, employee_id: 1}
-    message: "What is the overall status of the company right now?"
-    expected_answer: "Should pull from multiple systems to give an overview"
-    expected_tools: [hr_search_employees, tickets_search, crm_search_deals]
-    tags: [cross_system, executive, overview]
+- id: ts-001
+  user:
+    role: individual_contributor
+    employee_id: 114
+  message: How many employees are in the Engineering department?
+  expected_answer: Number of employees in Engineering
+  expected_tools:
+  - hr_search_employees
+  tags:
+  - directory
+  - engineering
+- id: ts-002
+  user:
+    role: individual_contributor
+    employee_id: 31
+  message: How many employees are in the Sales department?
+  expected_answer: Number of employees in Sales
+  expected_tools:
+  - hr_search_employees
+  tags:
+  - directory
+  - sales
+- id: ts-003
+  user:
+    role: individual_contributor
+    employee_id: 16
+  message: How many employees are in the HR department?
+  expected_answer: Number of employees in HR
+  expected_tools:
+  - hr_search_employees
+  tags:
+  - directory
+  - hr
+- id: ts-004
+  user:
+    role: individual_contributor
+    employee_id: 52
+  message: How many employees are in the Finance department?
+  expected_answer: Number of employees in Finance
+  expected_tools:
+  - hr_search_employees
+  tags:
+  - directory
+  - finance
+- id: ts-005
+  user:
+    role: individual_contributor
+    employee_id: 48
+  message: How many employees are in the Operations department?
+  expected_answer: Number of employees in Operations
+  expected_tools:
+  - hr_search_employees
+  tags:
+  - directory
+  - operations
+- id: ts-006
+  user:
+    role: individual_contributor
+    employee_id: 18
+  message: Find information about employee Reginald Robinson
+  expected_answer: Details about Reginald Robinson
+  expected_tools:
+  - hr_search_employees
+  tags:
+  - directory
+  - search
+- id: ts-007
+  user:
+    role: individual_contributor
+    employee_id: 14
+  message: Find information about employee Cynthia Baker
+  expected_answer: Details about Cynthia Baker
+  expected_tools:
+  - hr_search_employees
+  tags:
+  - directory
+  - search
+- id: ts-008
+  user:
+    role: individual_contributor
+    employee_id: 95
+  message: Find information about employee Joseph Mahoney
+  expected_answer: Details about Joseph Mahoney
+  expected_tools:
+  - hr_search_employees
+  tags:
+  - directory
+  - search
+- id: ts-009
+  user:
+    role: individual_contributor
+    employee_id: 70
+  message: Find information about employee Andrew Lee
+  expected_answer: Details about Andrew Lee
+  expected_tools:
+  - hr_search_employees
+  tags:
+  - directory
+  - search
+- id: ts-010
+  user:
+    role: individual_contributor
+    employee_id: 76
+  message: Find information about employee Teresa Gray
+  expected_answer: Details about Teresa Gray
+  expected_tools:
+  - hr_search_employees
+  tags:
+  - directory
+  - search
+- id: ts-011
+  user:
+    role: individual_contributor
+    employee_id: 55
+  message: List all managers in the company
+  expected_answer: List of managers
+  expected_tools:
+  - hr_search_employees
+  tags:
+  - directory
+  - manager
+- id: ts-012
+  user:
+    role: executive
+    employee_id: 5
+  message: List all executives in the company
+  expected_answer: List of executives
+  expected_tools:
+  - hr_search_employees
+  tags:
+  - directory
+  - executive
+- id: ts-013
+  user:
+    role: executive
+    employee_id: 4
+  message: List all contractors in the company
+  expected_answer: List of contractors
+  expected_tools:
+  - hr_search_employees
+  tags:
+  - directory
+  - contractor
+- id: ts-014
+  user:
+    role: sales_rep
+    employee_id: 12
+  message: Show me the org chart
+  expected_answer: Organization chart / hierarchy
+  expected_tools:
+  - hr_get_org_chart
+  tags:
+  - directory
+  - org_chart
+- id: ts-015
+  user:
+    role: manager
+    employee_id: 28
+  message: Show me the org chart
+  expected_answer: Organization chart / hierarchy
+  expected_tools:
+  - hr_get_org_chart
+  tags:
+  - directory
+  - org_chart
+- id: ts-016
+  user:
+    role: individual_contributor
+    employee_id: 46
+  message: What is my current salary?
+  expected_answer: The user's own salary amount
+  expected_tools:
+  - hr_get_salary
+  tags:
+  - salary
+  - own_data
+  - individual_contributor
+- id: ts-017
+  user:
+    role: individual_contributor
+    employee_id: 97
+  message: What is my current salary?
+  expected_answer: The user's own salary amount
+  expected_tools:
+  - hr_get_salary
+  tags:
+  - salary
+  - own_data
+  - individual_contributor
+- id: ts-018
+  user:
+    role: manager
+    employee_id: 91
+  message: What is my current salary?
+  expected_answer: The user's own salary amount
+  expected_tools:
+  - hr_get_salary
+  tags:
+  - salary
+  - own_data
+  - manager
+- id: ts-019
+  user:
+    role: manager
+    employee_id: 7
+  message: What is my current salary?
+  expected_answer: The user's own salary amount
+  expected_tools:
+  - hr_get_salary
+  tags:
+  - salary
+  - own_data
+  - manager
+- id: ts-020
+  user:
+    role: hr_partner
+    employee_id: 82
+  message: What is my current salary?
+  expected_answer: The user's own salary amount
+  expected_tools:
+  - hr_get_salary
+  tags:
+  - salary
+  - own_data
+  - hr_partner
+- id: ts-021
+  user:
+    role: hr_partner
+    employee_id: 80
+  message: What is my current salary?
+  expected_answer: The user's own salary amount
+  expected_tools:
+  - hr_get_salary
+  tags:
+  - salary
+  - own_data
+  - hr_partner
+- id: ts-022
+  user:
+    role: executive
+    employee_id: 6
+  message: What is my current salary?
+  expected_answer: The user's own salary amount
+  expected_tools:
+  - hr_get_salary
+  tags:
+  - salary
+  - own_data
+  - executive
+- id: ts-023
+  user:
+    role: executive
+    employee_id: 5
+  message: What is my current salary?
+  expected_answer: The user's own salary amount
+  expected_tools:
+  - hr_get_salary
+  tags:
+  - salary
+  - own_data
+  - executive
+- id: ts-024
+  user:
+    role: sales_rep
+    employee_id: 12
+  message: What is my current salary?
+  expected_answer: The user's own salary amount
+  expected_tools:
+  - hr_get_salary
+  tags:
+  - salary
+  - own_data
+  - sales_rep
+- id: ts-025
+  user:
+    role: sales_rep
+    employee_id: 9
+  message: What is my current salary?
+  expected_answer: The user's own salary amount
+  expected_tools:
+  - hr_get_salary
+  tags:
+  - salary
+  - own_data
+  - sales_rep
+- id: ts-026
+  user:
+    role: executive
+    employee_id: 5
+  message: Show me the salary for employee 76
+  expected_answer: Salary information for employee 76
+  expected_tools:
+  - hr_get_salary
+  tags:
+  - salary
+  - authorized_access
+  - executive
+- id: ts-027
+  user:
+    role: executive
+    employee_id: 2
+  message: Show me the salary for employee 104
+  expected_answer: Salary information for employee 104
+  expected_tools:
+  - hr_get_salary
+  tags:
+  - salary
+  - authorized_access
+  - executive
+- id: ts-028
+  user:
+    role: hr_partner
+    employee_id: 80
+  message: Show me the salary for employee 98
+  expected_answer: Salary information for employee 98
+  expected_tools:
+  - hr_get_salary
+  tags:
+  - salary
+  - authorized_access
+  - hr_partner
+- id: ts-029
+  user:
+    role: hr_partner
+    employee_id: 82
+  message: Show me the salary for employee 90
+  expected_answer: Salary information for employee 90
+  expected_tools:
+  - hr_get_salary
+  tags:
+  - salary
+  - authorized_access
+  - hr_partner
+- id: ts-030
+  user:
+    role: executive
+    employee_id: 4
+  message: Show me the salary for employee 44
+  expected_answer: Salary information for employee 44
+  expected_tools:
+  - hr_get_salary
+  tags:
+  - salary
+  - authorized_access
+  - executive
+- id: ts-031
+  user:
+    role: individual_contributor
+    employee_id: 52
+  message: Show my performance reviews
+  expected_answer: Performance review records
+  expected_tools:
+  - hr_get_reviews
+  tags:
+  - reviews
+  - own_data
+  - individual_contributor
+- id: ts-032
+  user:
+    role: individual_contributor
+    employee_id: 36
+  message: Show my performance reviews
+  expected_answer: Performance review records
+  expected_tools:
+  - hr_get_reviews
+  tags:
+  - reviews
+  - own_data
+  - individual_contributor
+- id: ts-033
+  user:
+    role: manager
+    employee_id: 29
+  message: Show my performance reviews
+  expected_answer: Performance review records
+  expected_tools:
+  - hr_get_reviews
+  tags:
+  - reviews
+  - own_data
+  - manager
+- id: ts-034
+  user:
+    role: manager
+    employee_id: 62
+  message: Show my performance reviews
+  expected_answer: Performance review records
+  expected_tools:
+  - hr_get_reviews
+  tags:
+  - reviews
+  - own_data
+  - manager
+- id: ts-035
+  user:
+    role: hr_partner
+    employee_id: 80
+  message: Show my performance reviews
+  expected_answer: Performance review records
+  expected_tools:
+  - hr_get_reviews
+  tags:
+  - reviews
+  - own_data
+  - hr_partner
+- id: ts-036
+  user:
+    role: hr_partner
+    employee_id: 82
+  message: Show my performance reviews
+  expected_answer: Performance review records
+  expected_tools:
+  - hr_get_reviews
+  tags:
+  - reviews
+  - own_data
+  - hr_partner
+- id: ts-037
+  user:
+    role: executive
+    employee_id: 4
+  message: Show my performance reviews
+  expected_answer: Performance review records
+  expected_tools:
+  - hr_get_reviews
+  tags:
+  - reviews
+  - own_data
+  - executive
+- id: ts-038
+  user:
+    role: executive
+    employee_id: 1
+  message: Show my performance reviews
+  expected_answer: Performance review records
+  expected_tools:
+  - hr_get_reviews
+  tags:
+  - reviews
+  - own_data
+  - executive
+- id: ts-039
+  user:
+    role: executive
+    employee_id: 3
+  message: Show performance reviews for employee 109
+  expected_answer: Reviews for employee 109
+  expected_tools:
+  - hr_get_reviews
+  tags:
+  - reviews
+  - authorized_access
+- id: ts-040
+  user:
+    role: executive
+    employee_id: 3
+  message: Show performance reviews for employee 78
+  expected_answer: Reviews for employee 78
+  expected_tools:
+  - hr_get_reviews
+  tags:
+  - reviews
+  - authorized_access
+- id: ts-041
+  user:
+    role: executive
+    employee_id: 2
+  message: Show performance reviews for employee 104
+  expected_answer: Reviews for employee 104
+  expected_tools:
+  - hr_get_reviews
+  tags:
+  - reviews
+  - authorized_access
+- id: ts-042
+  user:
+    role: hr_partner
+    employee_id: 80
+  message: Show performance reviews for employee 94
+  expected_answer: Reviews for employee 94
+  expected_tools:
+  - hr_get_reviews
+  tags:
+  - reviews
+  - authorized_access
+- id: ts-043
+  user:
+    role: executive
+    employee_id: 5
+  message: Show performance reviews for employee 69
+  expected_answer: Reviews for employee 69
+  expected_tools:
+  - hr_get_reviews
+  tags:
+  - reviews
+  - authorized_access
+- id: ts-044
+  user:
+    role: individual_contributor
+    employee_id: 32
+  message: Show my leave records
+  expected_answer: Leave record history
+  expected_tools:
+  - hr_get_leave
+  tags:
+  - leave
+  - own_data
+  - individual_contributor
+- id: ts-045
+  user:
+    role: individual_contributor
+    employee_id: 72
+  message: Show my leave records
+  expected_answer: Leave record history
+  expected_tools:
+  - hr_get_leave
+  tags:
+  - leave
+  - own_data
+  - individual_contributor
+- id: ts-046
+  user:
+    role: manager
+    employee_id: 8
+  message: Show my leave records
+  expected_answer: Leave record history
+  expected_tools:
+  - hr_get_leave
+  tags:
+  - leave
+  - own_data
+  - manager
+- id: ts-047
+  user:
+    role: manager
+    employee_id: 90
+  message: Show my leave records
+  expected_answer: Leave record history
+  expected_tools:
+  - hr_get_leave
+  tags:
+  - leave
+  - own_data
+  - manager
+- id: ts-048
+  user:
+    role: hr_partner
+    employee_id: 81
+  message: Show my leave records
+  expected_answer: Leave record history
+  expected_tools:
+  - hr_get_leave
+  tags:
+  - leave
+  - own_data
+  - hr_partner
+- id: ts-049
+  user:
+    role: hr_partner
+    employee_id: 82
+  message: Show my leave records
+  expected_answer: Leave record history
+  expected_tools:
+  - hr_get_leave
+  tags:
+  - leave
+  - own_data
+  - hr_partner
+- id: ts-050
+  user:
+    role: individual_contributor
+    employee_id: 74
+  message: Search for tickets assigned to me
+  expected_answer: Tickets assigned to the user
+  expected_tools:
+  - tickets_search
+  tags:
+  - tickets
+  - own
+- id: ts-051
+  user:
+    role: individual_contributor
+    employee_id: 25
+  message: Search for tickets assigned to me
+  expected_answer: Tickets assigned to the user
+  expected_tools:
+  - tickets_search
+  tags:
+  - tickets
+  - own
+- id: ts-052
+  user:
+    role: manager
+    employee_id: 91
+  message: Search for tickets assigned to me
+  expected_answer: Tickets assigned to the user
+  expected_tools:
+  - tickets_search
+  tags:
+  - tickets
+  - own
+- id: ts-053
+  user:
+    role: sales_rep
+    employee_id: 9
+  message: Search for tickets assigned to me
+  expected_answer: Tickets assigned to the user
+  expected_tools:
+  - tickets_search
+  tags:
+  - tickets
+  - own
+- id: ts-054
+  user:
+    role: executive
+    employee_id: 6
+  message: Search for tickets assigned to me
+  expected_answer: Tickets assigned to the user
+  expected_tools:
+  - tickets_search
+  tags:
+  - tickets
+  - own
+- id: ts-055
+  user:
+    role: individual_contributor
+    employee_id: 85
+  message: Search for tickets assigned to me
+  expected_answer: Tickets assigned to the user
+  expected_tools:
+  - tickets_search
+  tags:
+  - tickets
+  - own
+- id: ts-056
+  user:
+    role: manager
+    employee_id: 30
+  message: Search for tickets assigned to me
+  expected_answer: Tickets assigned to the user
+  expected_tools:
+  - tickets_search
+  tags:
+  - tickets
+  - own
+- id: ts-057
+  user:
+    role: individual_contributor
+    employee_id: 99
+  message: Search for tickets assigned to me
+  expected_answer: Tickets assigned to the user
+  expected_tools:
+  - tickets_search
+  tags:
+  - tickets
+  - own
+- id: ts-058
+  user:
+    role: individual_contributor
+    employee_id: 38
+  message: Search for tickets assigned to me
+  expected_answer: Tickets assigned to the user
+  expected_tools:
+  - tickets_search
+  tags:
+  - tickets
+  - own
+- id: ts-059
+  user:
+    role: sales_rep
+    employee_id: 11
+  message: Search for tickets assigned to me
+  expected_answer: Tickets assigned to the user
+  expected_tools:
+  - tickets_search
+  tags:
+  - tickets
+  - own
+- id: ts-060
+  user:
+    role: individual_contributor
+    employee_id: 21
+  message: Show me ticket TKT-0008
+  expected_answer: Details of ticket TKT-0008
+  expected_tools:
+  - tickets_get
+  tags:
+  - tickets
+  - get
+- id: ts-061
+  user:
+    role: individual_contributor
+    employee_id: 48
+  message: Show me ticket TKT-0004
+  expected_answer: Details of ticket TKT-0004
+  expected_tools:
+  - tickets_get
+  tags:
+  - tickets
+  - get
+- id: ts-062
+  user:
+    role: individual_contributor
+    employee_id: 46
+  message: Show me ticket TKT-0013
+  expected_answer: Details of ticket TKT-0013
+  expected_tools:
+  - tickets_get
+  tags:
+  - tickets
+  - get
+- id: ts-063
+  user:
+    role: contractor
+    employee_id: 27
+  message: Show me ticket TKT-0009
+  expected_answer: Details of ticket TKT-0009
+  expected_tools:
+  - tickets_get
+  tags:
+  - tickets
+  - get
+- id: ts-064
+  user:
+    role: individual_contributor
+    employee_id: 86
+  message: Show me ticket TKT-0015
+  expected_answer: Details of ticket TKT-0015
+  expected_tools:
+  - tickets_get
+  tags:
+  - tickets
+  - get
+- id: ts-065
+  user:
+    role: individual_contributor
+    employee_id: 35
+  message: Show me ticket TKT-0011
+  expected_answer: Details of ticket TKT-0011
+  expected_tools:
+  - tickets_get
+  tags:
+  - tickets
+  - get
+- id: ts-066
+  user:
+    role: manager
+    employee_id: 90
+  message: Show me ticket TKT-0014
+  expected_answer: Details of ticket TKT-0014
+  expected_tools:
+  - tickets_get
+  tags:
+  - tickets
+  - get
+- id: ts-067
+  user:
+    role: individual_contributor
+    employee_id: 88
+  message: Show me ticket TKT-0006
+  expected_answer: Details of ticket TKT-0006
+  expected_tools:
+  - tickets_get
+  tags:
+  - tickets
+  - get
+- id: ts-068
+  user:
+    role: individual_contributor
+    employee_id: 83
+  message: Search for high priority open tickets
+  expected_answer: High priority open tickets
+  expected_tools:
+  - tickets_search
+  tags:
+  - tickets
+  - filter
+- id: ts-069
+  user:
+    role: sales_rep
+    employee_id: 10
+  message: Search for high priority open tickets
+  expected_answer: High priority open tickets
+  expected_tools:
+  - tickets_search
+  tags:
+  - tickets
+  - filter
+- id: ts-070
+  user:
+    role: contractor
+    employee_id: 78
+  message: Search for high priority open tickets
+  expected_answer: High priority open tickets
+  expected_tools:
+  - tickets_search
+  tags:
+  - tickets
+  - filter
+- id: ts-071
+  user:
+    role: hr_partner
+    employee_id: 82
+  message: Search for high priority open tickets
+  expected_answer: High priority open tickets
+  expected_tools:
+  - tickets_search
+  tags:
+  - tickets
+  - filter
+- id: ts-072
+  user:
+    role: individual_contributor
+    employee_id: 22
+  message: Search for high priority open tickets
+  expected_answer: High priority open tickets
+  expected_tools:
+  - tickets_search
+  tags:
+  - tickets
+  - filter
+- id: ts-073
+  user:
+    role: individual_contributor
+    employee_id: 69
+  message: Search for policy documents
+  expected_answer: Documents of type policy
+  expected_tools:
+  - docs_search
+  tags:
+  - documents
+  - policy
+- id: ts-074
+  user:
+    role: individual_contributor
+    employee_id: 94
+  message: Search for report documents
+  expected_answer: Documents of type report
+  expected_tools:
+  - docs_search
+  tags:
+  - documents
+  - report
+- id: ts-075
+  user:
+    role: individual_contributor
+    employee_id: 32
+  message: Search for handbook documents
+  expected_answer: Documents of type handbook
+  expected_tools:
+  - docs_search
+  tags:
+  - documents
+  - handbook
+- id: ts-076
+  user:
+    role: individual_contributor
+    employee_id: 21
+  message: Search for meeting notes documents
+  expected_answer: Documents of type meeting_notes
+  expected_tools:
+  - docs_search
+  tags:
+  - documents
+  - meeting_notes
+- id: ts-077
+  user:
+    role: individual_contributor
+    employee_id: 60
+  message: Find documents about company policy
+  expected_answer: Policy-related documents
+  expected_tools:
+  - docs_search
+  tags:
+  - documents
+  - search
+- id: ts-078
+  user:
+    role: individual_contributor
+    employee_id: 49
+  message: Find documents about company policy
+  expected_answer: Policy-related documents
+  expected_tools:
+  - docs_search
+  tags:
+  - documents
+  - search
+- id: ts-079
+  user:
+    role: individual_contributor
+    employee_id: 35
+  message: Find documents about company policy
+  expected_answer: Policy-related documents
+  expected_tools:
+  - docs_search
+  tags:
+  - documents
+  - search
+- id: ts-080
+  user:
+    role: hr_partner
+    employee_id: 82
+  message: Find documents about company policy
+  expected_answer: Policy-related documents
+  expected_tools:
+  - docs_search
+  tags:
+  - documents
+  - search
+- id: ts-081
+  user:
+    role: contractor
+    employee_id: 89
+  message: Find documents about company policy
+  expected_answer: Policy-related documents
+  expected_tools:
+  - docs_search
+  tags:
+  - documents
+  - search
+- id: ts-082
+  user:
+    role: individual_contributor
+    employee_id: 72
+  message: Find documents related to employee onboarding process
+  expected_answer: Onboarding-related documents
+  expected_tools:
+  - docs_semantic_search
+  tags:
+  - documents
+  - semantic
+- id: ts-083
+  user:
+    role: manager
+    employee_id: 29
+  message: Find documents related to employee onboarding process
+  expected_answer: Onboarding-related documents
+  expected_tools:
+  - docs_semantic_search
+  tags:
+  - documents
+  - semantic
+- id: ts-084
+  user:
+    role: individual_contributor
+    employee_id: 88
+  message: Find documents related to employee onboarding process
+  expected_answer: Onboarding-related documents
+  expected_tools:
+  - docs_semantic_search
+  tags:
+  - documents
+  - semantic
+- id: ts-085
+  user:
+    role: individual_contributor
+    employee_id: 104
+  message: Show me messages from the ops-warehouse channel
+  expected_answer: Messages from ops-warehouse
+  expected_tools:
+  - chat_get_messages
+  tags:
+  - chat
+  - public
+- id: ts-086
+  user:
+    role: individual_contributor
+    employee_id: 41
+  message: Show me messages from the sales-general channel
+  expected_answer: Messages from sales-general
+  expected_tools:
+  - chat_get_messages
+  tags:
+  - chat
+  - public
+- id: ts-087
+  user:
+    role: individual_contributor
+    employee_id: 52
+  message: Show me messages from the ops-general channel
+  expected_answer: Messages from ops-general
+  expected_tools:
+  - chat_get_messages
+  tags:
+  - chat
+  - public
+- id: ts-088
+  user:
+    role: individual_contributor
+    employee_id: 35
+  message: Show me messages from the ops-fleet channel
+  expected_answer: Messages from ops-fleet
+  expected_tools:
+  - chat_get_messages
+  tags:
+  - chat
+  - public
+- id: ts-089
+  user:
+    role: sales_rep
+    employee_id: 9
+  message: Show me messages from the finance-reports channel
+  expected_answer: Messages from finance-reports
+  expected_tools:
+  - chat_get_messages
+  tags:
+  - chat
+  - public
+- id: ts-090
+  user:
+    role: manager
+    employee_id: 28
+  message: List all chat channels
+  expected_answer: List of chat channels
+  expected_tools:
+  - chat_list_channels
+  tags:
+  - chat
+  - list
+- id: ts-091
+  user:
+    role: individual_contributor
+    employee_id: 73
+  message: List all chat channels
+  expected_answer: List of chat channels
+  expected_tools:
+  - chat_list_channels
+  tags:
+  - chat
+  - list
+- id: ts-092
+  user:
+    role: individual_contributor
+    employee_id: 113
+  message: List all chat channels
+  expected_answer: List of chat channels
+  expected_tools:
+  - chat_list_channels
+  tags:
+  - chat
+  - list
+- id: ts-093
+  user:
+    role: manager
+    employee_id: 7
+  message: List all customers
+  expected_answer: Customer list
+  expected_tools:
+  - crm_list_customers
+  tags:
+  - crm
+  - customers
+- id: ts-094
+  user:
+    role: executive
+    employee_id: 3
+  message: List all customers
+  expected_answer: Customer list
+  expected_tools:
+  - crm_list_customers
+  tags:
+  - crm
+  - customers
+- id: ts-095
+  user:
+    role: manager
+    employee_id: 92
+  message: List all customers
+  expected_answer: Customer list
+  expected_tools:
+  - crm_list_customers
+  tags:
+  - crm
+  - customers
+- id: ts-096
+  user:
+    role: manager
+    employee_id: 62
+  message: List all customers
+  expected_answer: Customer list
+  expected_tools:
+  - crm_list_customers
+  tags:
+  - crm
+  - customers
+- id: ts-097
+  user:
+    role: manager
+    employee_id: 28
+  message: List all customers
+  expected_answer: Customer list
+  expected_tools:
+  - crm_list_customers
+  tags:
+  - crm
+  - customers
+- id: ts-098
+  user:
+    role: executive
+    employee_id: 4
+  message: Show me deals in the prospecting stage
+  expected_answer: Deals in prospecting
+  expected_tools:
+  - crm_search_deals
+  tags:
+  - crm
+  - deals
+  - prospecting
+- id: ts-099
+  user:
+    role: sales_rep
+    employee_id: 11
+  message: Show me deals in the negotiation stage
+  expected_answer: Deals in negotiation
+  expected_tools:
+  - crm_search_deals
+  tags:
+  - crm
+  - deals
+  - negotiation
+- id: ts-100
+  user:
+    role: executive
+    employee_id: 1
+  message: Show me deals in the closed_won stage
+  expected_answer: Deals in closed_won
+  expected_tools:
+  - crm_search_deals
+  tags:
+  - crm
+  - deals
+  - closed_won
+- id: ts-101
+  user:
+    role: sales_rep
+    employee_id: 11
+  message: Show me deals in the closed_lost stage
+  expected_answer: Deals in closed_lost
+  expected_tools:
+  - crm_search_deals
+  tags:
+  - crm
+  - deals
+  - closed_lost
+- id: ts-102
+  user:
+    role: sales_rep
+    employee_id: 12
+  message: Search for deals worth over $100,000
+  expected_answer: High-value deals
+  expected_tools:
+  - crm_search_deals
+  tags:
+  - crm
+  - deals
+  - filter
+- id: ts-103
+  user:
+    role: executive
+    employee_id: 5
+  message: Search for deals worth over $100,000
+  expected_answer: High-value deals
+  expected_tools:
+  - crm_search_deals
+  tags:
+  - crm
+  - deals
+  - filter
+- id: ts-104
+  user:
+    role: executive
+    employee_id: 5
+  message: Search for deals worth over $100,000
+  expected_answer: High-value deals
+  expected_tools:
+  - crm_search_deals
+  tags:
+  - crm
+  - deals
+  - filter
+- id: ts-105
+  user:
+    role: executive
+    employee_id: 1
+  message: Search for deals worth over $100,000
+  expected_answer: High-value deals
+  expected_tools:
+  - crm_search_deals
+  tags:
+  - crm
+  - deals
+  - filter
+- id: ts-106
+  user:
+    role: executive
+    employee_id: 6
+  message: Search for deals worth over $100,000
+  expected_answer: High-value deals
+  expected_tools:
+  - crm_search_deals
+  tags:
+  - crm
+  - deals
+  - filter
+- id: ts-107
+  user:
+    role: manager
+    employee_id: 91
+  message: What open deals does the Sales team have?
+  expected_answer: Relevant results from the system
+  expected_tools: &id001
+  - crm_search_deals
+  tags:
+  - cross_domain
+- id: ts-108
+  user:
+    role: manager
+    employee_id: 28
+  message: What open deals does the Sales team have?
+  expected_answer: Relevant results from the system
+  expected_tools: *id001
+  tags:
+  - cross_domain
+- id: ts-109
+  user:
+    role: executive
+    employee_id: 5
+  message: Show me recent HR complaint tickets
+  expected_answer: Relevant results from the system
+  expected_tools: &id003
+  - tickets_search
+  tags:
+  - cross_domain
+- id: ts-110
+  user:
+    role: manager
+    employee_id: 63
+  message: Search chat for mentions of the quarterly review
+  expected_answer: Relevant results from the system
+  expected_tools: &id004
+  - chat_search
+  tags:
+  - cross_domain
+- id: ts-111
+  user:
+    role: executive
+    employee_id: 2
+  message: Who are the top performers in Engineering?
+  expected_answer: Relevant results from the system
+  expected_tools: &id002
+  - hr_search_employees
+  - hr_get_reviews
+  tags:
+  - cross_domain
+- id: ts-112
+  user:
+    role: executive
+    employee_id: 5
+  message: Who are the top performers in Engineering?
+  expected_answer: Relevant results from the system
+  expected_tools: *id002
+  tags:
+  - cross_domain
+- id: ts-113
+  user:
+    role: manager
+    employee_id: 30
+  message: Show me recent HR complaint tickets
+  expected_answer: Relevant results from the system
+  expected_tools: *id003
+  tags:
+  - cross_domain
+- id: ts-114
+  user:
+    role: executive
+    employee_id: 3
+  message: Search chat for mentions of the quarterly review
+  expected_answer: Relevant results from the system
+  expected_tools: *id004
+  tags:
+  - cross_domain
+- id: ts-115
+  user:
+    role: manager
+    employee_id: 29
+  message: What open deals does the Sales team have?
+  expected_answer: Relevant results from the system
+  expected_tools: *id001
+  tags:
+  - cross_domain
+- id: ts-116
+  user:
+    role: manager
+    employee_id: 62
+  message: Search chat for mentions of the quarterly review
+  expected_answer: Relevant results from the system
+  expected_tools: *id004
+  tags:
+  - cross_domain
+- id: ts-117
+  user:
+    role: hr_partner
+    employee_id: 82
+  message: Search chat for mentions of the quarterly review
+  expected_answer: Relevant results from the system
+  expected_tools: *id004
+  tags:
+  - cross_domain
+- id: ts-118
+  user:
+    role: executive
+    employee_id: 1
+  message: Search chat for mentions of the quarterly review
+  expected_answer: Relevant results from the system
+  expected_tools: *id004
+  tags:
+  - cross_domain
+- id: ts-119
+  user:
+    role: manager
+    employee_id: 90
+  message: Who are the top performers in Engineering?
+  expected_answer: Relevant results from the system
+  expected_tools: *id002
+  tags:
+  - cross_domain
+- id: ts-120
+  user:
+    role: manager
+    employee_id: 8
+  message: Find all documents I have access to about budgets
+  expected_answer: Relevant results from the system
+  expected_tools: &id005
+  - docs_search
+  tags:
+  - cross_domain
+- id: ts-121
+  user:
+    role: manager
+    employee_id: 7
+  message: Who are the top performers in Engineering?
+  expected_answer: Relevant results from the system
+  expected_tools: *id002
+  tags:
+  - cross_domain
+- id: ts-122
+  user:
+    role: executive
+    employee_id: 6
+  message: What open deals does the Sales team have?
+  expected_answer: Relevant results from the system
+  expected_tools: *id001
+  tags:
+  - cross_domain
+- id: ts-123
+  user:
+    role: executive
+    employee_id: 1
+  message: What open deals does the Sales team have?
+  expected_answer: Relevant results from the system
+  expected_tools: *id001
+  tags:
+  - cross_domain
+- id: ts-124
+  user:
+    role: manager
+    employee_id: 79
+  message: Find all documents I have access to about budgets
+  expected_answer: Relevant results from the system
+  expected_tools: *id005
+  tags:
+  - cross_domain
+- id: ts-125
+  user:
+    role: manager
+    employee_id: 79
+  message: Show me recent HR complaint tickets
+  expected_answer: Relevant results from the system
+  expected_tools: *id003
+  tags:
+  - cross_domain
+- id: ts-126
+  user:
+    role: manager
+    employee_id: 7
+  message: Who are the top performers in Engineering?
+  expected_answer: Relevant results from the system
+  expected_tools: *id002
+  tags:
+  - cross_domain
+- id: ts-127
+  user:
+    role: manager
+    employee_id: 92
+  message: Search chat for mentions of the quarterly review
+  expected_answer: Relevant results from the system
+  expected_tools: *id004
+  tags:
+  - cross_domain
+- id: ts-128
+  user:
+    role: executive
+    employee_id: 5
+  message: Show me recent HR complaint tickets
+  expected_answer: Relevant results from the system
+  expected_tools: *id003
+  tags:
+  - cross_domain
+- id: ts-129
+  user:
+    role: executive
+    employee_id: 6
+  message: Find all documents I have access to about budgets
+  expected_answer: Relevant results from the system
+  expected_tools: *id005
+  tags:
+  - cross_domain
+- id: ts-130
+  user:
+    role: manager
+    employee_id: 79
+  message: Search chat for mentions of the quarterly review
+  expected_answer: Relevant results from the system
+  expected_tools: *id004
+  tags:
+  - cross_domain
+- id: ts-131
+  user:
+    role: manager
+    employee_id: 92
+  message: Who are the top performers in Engineering?
+  expected_answer: Relevant results from the system
+  expected_tools: *id002
+  tags:
+  - cross_domain
+- id: ts-132
+  user:
+    role: manager
+    employee_id: 63
+  message: Find all documents I have access to about budgets
+  expected_answer: Relevant results from the system
+  expected_tools: *id005
+  tags:
+  - cross_domain
+- id: ts-133
+  user:
+    role: executive
+    employee_id: 4
+  message: Who are the top performers in Engineering?
+  expected_answer: Relevant results from the system
+  expected_tools: *id002
+  tags:
+  - cross_domain
+- id: ts-134
+  user:
+    role: manager
+    employee_id: 7
+  message: Find all documents I have access to about budgets
+  expected_answer: Relevant results from the system
+  expected_tools: *id005
+  tags:
+  - cross_domain
+- id: ts-135
+  user:
+    role: executive
+    employee_id: 2
+  message: Show me recent HR complaint tickets
+  expected_answer: Relevant results from the system
+  expected_tools: *id003
+  tags:
+  - cross_domain
+- id: ts-136
+  user:
+    role: manager
+    employee_id: 91
+  message: Show me recent HR complaint tickets
+  expected_answer: Relevant results from the system
+  expected_tools: *id003
+  tags:
+  - cross_domain
+- id: ts-137
+  user:
+    role: executive
+    employee_id: 3
+  message: Who are the top performers in Engineering?
+  expected_answer: Relevant results from the system
+  expected_tools: *id002
+  tags:
+  - cross_domain
+- id: ts-138
+  user:
+    role: executive
+    employee_id: 3
+  message: What open deals does the Sales team have?
+  expected_answer: Relevant results from the system
+  expected_tools: *id001
+  tags:
+  - cross_domain
+- id: ts-139
+  user:
+    role: executive
+    employee_id: 5
+  message: Search chat for mentions of the quarterly review
+  expected_answer: Relevant results from the system
+  expected_tools: *id004
+  tags:
+  - cross_domain
+- id: ts-140
+  user:
+    role: manager
+    employee_id: 63
+  message: Show me recent HR complaint tickets
+  expected_answer: Relevant results from the system
+  expected_tools: *id003
+  tags:
+  - cross_domain
+- id: ts-141
+  user:
+    role: executive
+    employee_id: 6
+  message: Search chat for mentions of the quarterly review
+  expected_answer: Relevant results from the system
+  expected_tools: *id004
+  tags:
+  - cross_domain
+- id: ts-142
+  user:
+    role: manager
+    employee_id: 79
+  message: Find all documents I have access to about budgets
+  expected_answer: Relevant results from the system
+  expected_tools: *id005
+  tags:
+  - cross_domain
+- id: ts-143
+  user:
+    role: manager
+    employee_id: 30
+  message: Search chat for mentions of the quarterly review
+  expected_answer: Relevant results from the system
+  expected_tools: *id004
+  tags:
+  - cross_domain
+- id: ts-144
+  user:
+    role: manager
+    employee_id: 90
+  message: Show me recent HR complaint tickets
+  expected_answer: Relevant results from the system
+  expected_tools: *id003
+  tags:
+  - cross_domain
+- id: ts-145
+  user:
+    role: manager
+    employee_id: 7
+  message: Show me recent HR complaint tickets
+  expected_answer: Relevant results from the system
+  expected_tools: *id003
+  tags:
+  - cross_domain
+- id: ts-146
+  user:
+    role: manager
+    employee_id: 28
+  message: What open deals does the Sales team have?
+  expected_answer: Relevant results from the system
+  expected_tools: *id001
+  tags:
+  - cross_domain
+- id: ts-147
+  user:
+    role: manager
+    employee_id: 79
+  message: What open deals does the Sales team have?
+  expected_answer: Relevant results from the system
+  expected_tools: *id001
+  tags:
+  - cross_domain
+- id: ts-148
+  user:
+    role: executive
+    employee_id: 4
+  message: What open deals does the Sales team have?
+  expected_answer: Relevant results from the system
+  expected_tools: *id001
+  tags:
+  - cross_domain
+- id: ts-149
+  user:
+    role: hr_partner
+    employee_id: 81
+  message: Show me recent HR complaint tickets
+  expected_answer: Relevant results from the system
+  expected_tools: *id003
+  tags:
+  - cross_domain
+- id: ts-150
+  user:
+    role: manager
+    employee_id: 8
+  message: Who are the top performers in Engineering?
+  expected_answer: Relevant results from the system
+  expected_tools: *id002
+  tags:
+  - cross_domain
