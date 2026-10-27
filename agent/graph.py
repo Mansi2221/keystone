@@ -19,12 +19,19 @@ from agent.guards import (
     wrap_untrusted,
 )
 from company.config import settings
-from agent.prompts import PLANNER_PROMPT, SELF_CHECK_PROMPT, SYSTEM_PROMPT
+from agent.prompts import PLANNER_PROMPT, SELF_CHECK_PROMPT, SYSTEM_PROMPT, SYSTEM_PROMPT_BARE
 from agent.state import AgentState, Source, ToolCall
 from company.principal import Principal
 from mcp_servers.registry import get_tool_definitions, invoke_tool, is_write_tool
 
 logger = logging.getLogger(__name__)
+
+
+def _active_system_prompt() -> str:
+    """Return the system prompt template, respecting ablation flags."""
+    if settings.eval_mode and not settings.protection_enabled("system_prompt_rules"):
+        return SYSTEM_PROMPT_BARE
+    return SYSTEM_PROMPT
 
 
 def _get_llm():
@@ -107,7 +114,7 @@ def planner_node(state: AgentState) -> AgentState:
     )
 
     try:
-        system = SYSTEM_PROMPT.format(
+        system = _active_system_prompt().format(
             user_id=state.principal.user_id,
             employee_id=state.principal.employee_id,
             role=state.principal.role,
@@ -487,7 +494,7 @@ def responder_node(state: AgentState) -> AgentState:
     if not state.tool_results and not state.planned_tools:
         # No tools needed — direct response
         try:
-            system = SYSTEM_PROMPT.format(
+            system = _active_system_prompt().format(
                 user_id=state.principal.user_id if state.principal else 0,
                 employee_id=state.principal.employee_id if state.principal else "",
                 role=state.principal.role if state.principal else "",
@@ -512,7 +519,7 @@ def responder_node(state: AgentState) -> AgentState:
                 result_content = json.dumps(result, default=str)[:3000]
                 results_text += wrap_untrusted(result_content, source=tool_name) + "\n\n"
 
-            system = SYSTEM_PROMPT.format(
+            system = _active_system_prompt().format(
                 user_id=state.principal.user_id if state.principal else 0,
                 employee_id=state.principal.employee_id if state.principal else "",
                 role=state.principal.role if state.principal else "",

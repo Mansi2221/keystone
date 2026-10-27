@@ -59,6 +59,7 @@ def search_tickets(
                 "assignee_id": t.assignee_id,
                 "created_at": t.created_at.isoformat(),
                 "updated_at": t.updated_at.isoformat(),
+                "canary": t.canary,
             }
             for t in results
         ])
@@ -85,6 +86,7 @@ def get_ticket(principal: Principal, ticket_id: str) -> dict:
             "assignee_id": ticket.assignee_id,
             "created_at": ticket.created_at.isoformat(),
             "updated_at": ticket.updated_at.isoformat(),
+            "canary": ticket.canary,
         })
 
 

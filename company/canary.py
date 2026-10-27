@@ -33,6 +33,7 @@ class CanaryEntry:
     required_permission: str
     allowed_roles: list[str]
     allowed_employee_ids: list[int]
+    protected_values: dict | None
     description: str
 
 
@@ -51,6 +52,7 @@ class CanaryGenerator:
         required_permission: str,
         allowed_roles: list[str],
         allowed_employee_ids: list[int] | None = None,
+        protected_values: dict | None = None,
         description: str = "",
     ) -> str:
         """Generate a unique canary string and register it."""
@@ -70,6 +72,7 @@ class CanaryGenerator:
                 required_permission=required_permission,
                 allowed_roles=allowed_roles,
                 allowed_employee_ids=allowed_employee_ids or [],
+                protected_values=protected_values,
                 description=description,
             )
         )

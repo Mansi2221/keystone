@@ -89,6 +89,7 @@ def search_deals(
                 "stage": d.stage,
                 "created_at": d.created_at.isoformat(),
                 "updated_at": d.updated_at.isoformat(),
+                "canary": d.canary,
             }
             for d in results
         ])
@@ -112,6 +113,7 @@ def get_deal(principal: Principal, deal_id: str) -> dict:
             "stage": deal.stage,
             "created_at": deal.created_at.isoformat(),
             "updated_at": deal.updated_at.isoformat(),
+            "canary": deal.canary,
         })
 
 

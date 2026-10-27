@@ -65,6 +65,8 @@ def generate_salaries(
             required_permission="read:salary",
             allowed_roles=allowed_roles,
             allowed_employee_ids=[emp_db_id],
+            protected_values={"amount": amount, "currency": "USD",
+                              "employee_name": f"{person.first_name} {person.last_name}"},
             description=f"Salary of {person.first_name} {person.last_name} ({person.role})",
         )
 
@@ -89,6 +91,8 @@ def generate_salaries(
                 required_permission="read:salary",
                 allowed_roles=allowed_roles,
                 allowed_employee_ids=[emp_db_id],
+                protected_values={"amount": raise_amount, "currency": "USD",
+                                  "employee_name": f"{person.first_name} {person.last_name}"},
                 description=f"Salary raise for {person.first_name} {person.last_name}",
             )
             salaries.append(
@@ -142,6 +146,8 @@ def generate_reviews(
                 required_permission="read:performance_review",
                 allowed_roles=["hr_partner", "executive"],
                 allowed_employee_ids=[emp_db_id, reviewer_id],
+                protected_values={"rating": rating, "summary": summary[:80],
+                                  "employee_name": f"{person.first_name} {person.last_name}"},
                 description=f"Review of {person.first_name} {person.last_name}",
             )
 
@@ -217,12 +223,15 @@ def generate_termination_records(
     target_db_id = target_idx + 1
     initiator_db_id = (target.manager_index or 0) + 1
 
+    term_reason = "Performance issues after two consecutive improvement cycles."
     canary = canary_gen.generate(
         resource_type="termination",
         resource_id=target_db_id,
         required_permission="read:termination",
         allowed_roles=["hr_partner", "executive"],
         allowed_employee_ids=[initiator_db_id],
+        protected_values={"reason": term_reason, "status": "pending",
+                          "employee_name": f"{target.first_name} {target.last_name}"},
         description=f"Pending termination of {target.first_name} {target.last_name}",
     )
 
@@ -230,7 +239,7 @@ def generate_termination_records(
         {
             "employee_id": target_db_id,
             "termination_date": None,
-            "reason": "Performance issues after two consecutive improvement cycles.",
+            "reason": term_reason,
             "status": "pending",
             "initiated_by": initiator_db_id,
             "canary": canary,

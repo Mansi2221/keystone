@@ -197,6 +197,7 @@ def seed_all() -> None:
                 required_permission=entry.required_permission,
                 allowed_roles=entry.allowed_roles,
                 allowed_employee_ids=entry.allowed_employee_ids,
+                protected_values=entry.protected_values,
                 description=entry.description,
             ))
         session.commit()

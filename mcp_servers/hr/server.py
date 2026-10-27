@@ -113,6 +113,7 @@ def get_salary(principal: Principal, employee_id: int) -> dict:
                 "amount": s.amount,
                 "currency": s.currency,
                 "effective_date": s.effective_date.isoformat(),
+                "canary": s.canary,
             }
             for s in results
         ])
@@ -141,6 +142,7 @@ def get_reviews(principal: Principal, employee_id: int) -> dict:
                 "review_date": r.review_date.isoformat(),
                 "rating": r.rating,
                 "summary": r.summary,
+                "canary": r.canary,
             }
             for r in results
         ])
