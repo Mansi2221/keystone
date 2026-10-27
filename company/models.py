@@ -304,6 +304,7 @@ class CanaryRecord(Base):
     allowed_employee_ids: Mapped[list[int]] = mapped_column(
         ARRAY(Integer), default=list, nullable=False
     )
+    protected_values: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     description: Mapped[str] = mapped_column(Text, nullable=False)
 
 

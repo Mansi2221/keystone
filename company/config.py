@@ -134,6 +134,7 @@ class Settings(BaseSettings):
     ablation_aggregation_guard: bool = True
     ablation_injection_scanner: bool = True
     ablation_output_scanner: bool = True
+    ablation_system_prompt_rules: bool = True  # False = strip permission rules from system prompt
 
     def protection_enabled(self, name: str) -> bool:
         """Check if a protection layer is active.

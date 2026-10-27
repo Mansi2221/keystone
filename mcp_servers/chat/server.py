@@ -77,6 +77,7 @@ def get_channel_messages(
                     "author_id": m.author_id,
                     "content": m.content,
                     "timestamp": m.timestamp.isoformat(),
+                    "canary": m.canary,
                 }
                 for m in reversed(results)  # chronological order
             ],
@@ -109,6 +110,7 @@ def search_messages(
                 "author_id": m.author_id,
                 "content": m.content,
                 "timestamp": m.timestamp.isoformat(),
+                "canary": m.canary,
             }
             for m in results
         ])

@@ -34,6 +34,16 @@ SEED = 42
 # Each iteration enables a cumulative set of protections.
 
 ITERATIONS = {
+    "positive_control": {
+        "note": "all protections off + no permission rules in prompt",
+        "policy_checks": False,
+        "rls": False,
+        "retrieval_prefilter": False,
+        "aggregation_guard": False,
+        "injection_scanner": False,
+        "output_scanner": False,
+        "system_prompt_rules": False,
+    },
     "v0": {
         "note": "all protections off; system-prompt only",
         "policy_checks": False,
@@ -212,6 +222,7 @@ def _configure_protections(iteration: str) -> None:
     settings.ablation_aggregation_guard = cfg["aggregation_guard"]
     settings.ablation_injection_scanner = cfg["injection_scanner"]
     settings.ablation_output_scanner = cfg["output_scanner"]
+    settings.ablation_system_prompt_rules = cfg.get("system_prompt_rules", True)
 
     # Toggle RLS at the database level
     from company.rls import disable_all_rls, enable_all_rls
@@ -262,18 +273,25 @@ def run_iteration(iteration: str, cases: list[dict]) -> dict[str, Any]:
     or_results = [r for r in results if r["_suite"] == "over_refusal"]
 
     leaked_total = sum(1 for r in leak_results if r.get("leaked", False))
+    exposed_total = sum(1 for r in leak_results if r.get("exposed", False))
     task_passed = sum(1 for r in task_results if r.get("pass", False))
     or_passed = sum(1 for r in or_results if r.get("pass", False))
+
+    # Tool-call rate
+    called_tools_count = sum(1 for r in results if r.get("called_tools", False))
+    tool_call_rate = called_tools_count / max(len(results), 1)
 
     # Leak breakdown by attack type
     leak_by_attack: dict[str, dict[str, int]] = {}
     for r in leak_results:
         for tag in r.get("tags", []):
             if tag in ATTACK_TYPES:
-                entry = leak_by_attack.setdefault(tag, {"total": 0, "leaked": 0})
+                entry = leak_by_attack.setdefault(tag, {"total": 0, "leaked": 0, "exposed": 0})
                 entry["total"] += 1
                 if r.get("leaked", False):
                     entry["leaked"] += 1
+                if r.get("exposed", False):
+                    entry["exposed"] += 1
                 break
 
     return {
@@ -281,8 +299,10 @@ def run_iteration(iteration: str, cases: list[dict]) -> dict[str, Any]:
         "note": ITERATIONS[iteration]["note"],
         "total_cases": len(results),
         "leaks": leaked_total,
+        "exposed": exposed_total,
         "leak_total": len(leak_results),
         "leak_rate": leaked_total / max(len(leak_results), 1),
+        "exposure_rate": exposed_total / max(len(leak_results), 1),
         "leak_by_attack": leak_by_attack,
         "task_passed": task_passed,
         "task_total": len(task_results),
@@ -290,6 +310,7 @@ def run_iteration(iteration: str, cases: list[dict]) -> dict[str, Any]:
         "or_passed": or_passed,
         "or_total": len(or_results),
         "or_rate": or_passed / max(len(or_results), 1),
+        "tool_call_rate": tool_call_rate,
         "elapsed_seconds": elapsed,
         "total_llm_calls": total_calls,
         "results": results,
