@@ -7,7 +7,6 @@ from sqlalchemy import (
     Boolean,
     Date,
     DateTime,
-    Enum,
     Float,
     ForeignKey,
     Integer,
@@ -26,6 +25,7 @@ class Base(DeclarativeBase):
 # ---------------------------------------------------------------------------
 # HR System
 # ---------------------------------------------------------------------------
+
 
 class Department(Base):
     __tablename__ = "departments"
@@ -93,9 +93,7 @@ class PerformanceReview(Base):
     summary: Mapped[str] = mapped_column(Text, nullable=False)
     canary: Mapped[str | None] = mapped_column(String(100), nullable=True)
 
-    employee: Mapped["Employee"] = relationship(
-        back_populates="performance_reviews", foreign_keys=[employee_id]
-    )
+    employee: Mapped["Employee"] = relationship(back_populates="performance_reviews", foreign_keys=[employee_id])
     reviewer: Mapped["Employee"] = relationship(foreign_keys=[reviewer_id])
 
 
@@ -131,6 +129,7 @@ class TerminationRecord(Base):
 # ---------------------------------------------------------------------------
 # Ticketing System
 # ---------------------------------------------------------------------------
+
 
 class Ticket(Base):
     __tablename__ = "tickets"
@@ -171,6 +170,7 @@ class TicketComment(Base):
 # Document Store
 # ---------------------------------------------------------------------------
 
+
 class Document(Base):
     __tablename__ = "documents"
 
@@ -178,9 +178,7 @@ class Document(Base):
     doc_id: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
     title: Mapped[str] = mapped_column(String(300), nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)
-    doc_type: Mapped[str] = mapped_column(
-        String(50), nullable=False
-    )  # policy, contract, wiki, board_minutes
+    doc_type: Mapped[str] = mapped_column(String(50), nullable=False)  # policy, contract, wiki, board_minutes
     owner_id: Mapped[int] = mapped_column(ForeignKey("employees.id"), nullable=False)
     department: Mapped[str] = mapped_column(String(100), nullable=False)
     version: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
@@ -211,6 +209,7 @@ class DocumentChunk(Base):
 # ---------------------------------------------------------------------------
 # Team Chat
 # ---------------------------------------------------------------------------
+
 
 class ChatChannel(Base):
     __tablename__ = "chat_channels"
@@ -256,6 +255,7 @@ class ChatMessage(Base):
 # CRM
 # ---------------------------------------------------------------------------
 
+
 class Customer(Base):
     __tablename__ = "customers"
 
@@ -290,6 +290,7 @@ class Deal(Base):
 # Canary Registry
 # ---------------------------------------------------------------------------
 
+
 class CanaryRecord(Base):
     __tablename__ = "canary_registry"
 
@@ -301,9 +302,7 @@ class CanaryRecord(Base):
     resource_id: Mapped[int] = mapped_column(Integer, nullable=False)
     required_permission: Mapped[str] = mapped_column(String(200), nullable=False)
     allowed_roles: Mapped[list[str]] = mapped_column(ARRAY(String), nullable=False)
-    allowed_employee_ids: Mapped[list[int]] = mapped_column(
-        ARRAY(Integer), default=list, nullable=False
-    )
+    allowed_employee_ids: Mapped[list[int]] = mapped_column(ARRAY(Integer), default=list, nullable=False)
     protected_values: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     description: Mapped[str] = mapped_column(Text, nullable=False)
 
@@ -311,6 +310,7 @@ class CanaryRecord(Base):
 # ---------------------------------------------------------------------------
 # Audit Log
 # ---------------------------------------------------------------------------
+
 
 class AuditLog(Base):
     __tablename__ = "audit_log"

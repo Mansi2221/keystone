@@ -16,7 +16,6 @@ import json
 import logging
 import sys
 import time
-from datetime import datetime
 from pathlib import Path
 
 sys.path.insert(0, ".")
@@ -80,8 +79,7 @@ def run_full_eval() -> None:
     completed = load_completed()
     remaining = [c for c in all_cases if c["_case_key"] not in completed]
 
-    logger.info("Total cases: %d, completed: %d, remaining: %d",
-                len(all_cases), len(completed), len(remaining))
+    logger.info("Total cases: %d, completed: %d, remaining: %d", len(all_cases), len(completed), len(remaining))
 
     if not remaining:
         logger.info("All cases already completed. Use --reset to start over.")
@@ -118,8 +116,14 @@ def run_full_eval() -> None:
 
             logger.info(
                 "  [%d/%d total, %d/%d this run] %s %s (%.1fs, ETA %.0fs)",
-                total_done, len(all_cases), i, len(remaining),
-                result["case_id"], status, result["elapsed"], eta,
+                total_done,
+                len(all_cases),
+                i,
+                len(remaining),
+                result["case_id"],
+                status,
+                result["elapsed"],
+                eta,
             )
 
     logger.info("Full eval complete!")
@@ -193,7 +197,7 @@ def show_status() -> None:
 
     total_done = sum(s["done"] for s in by_suite.values())
     total = sum(s["total"] for s in by_suite.values())
-    print(f"\nOverall: {total_done}/{total} ({total_done/max(total,1):.1%})")
+    print(f"\nOverall: {total_done}/{total} ({total_done / max(total, 1):.1%})")
 
     if PROGRESS_FILE.exists():
         _print_summary()

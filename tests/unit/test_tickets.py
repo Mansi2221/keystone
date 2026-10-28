@@ -31,9 +31,7 @@ class TestTickets:
     def test_restricted_tickets_have_canaries(self, seed_data):
         """Security and HR tickets should have canaries."""
         tickets = seed_data["tickets"]
-        restricted = [
-            t for t in tickets if t["category"] in ("security_incident", "hr_complaint")
-        ]
+        restricted = [t for t in tickets if t["category"] in ("security_incident", "hr_complaint")]
         for t in restricted:
             assert t["canary"] is not None, f"Restricted ticket {t['ticket_id']} has no canary"
             assert t["canary"].startswith("CANARY-TKT-")
@@ -41,9 +39,7 @@ class TestTickets:
     def test_regular_tickets_no_canaries(self, seed_data):
         """Regular tickets should not have canaries."""
         tickets = seed_data["tickets"]
-        regular = [
-            t for t in tickets if t["category"] in ("it", "ops")
-        ]
+        regular = [t for t in tickets if t["category"] in ("it", "ops")]
         for t in regular:
             assert t["canary"] is None, f"Regular ticket {t['ticket_id']} should not have canary"
 

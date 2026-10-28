@@ -5,7 +5,6 @@ import pytest
 from agent.guards import (
     check_aggregation_risk,
     scan_for_injections,
-    scan_output_for_leaks,
     wrap_untrusted,
 )
 from company.principal import Principal
@@ -57,8 +56,11 @@ class TestOutputScanner:
 class TestAggregationCheck:
     def test_small_team_flagged(self):
         principal = Principal(
-            user_id=10, employee_id="MF-0010", role="manager",
-            department="Sales", report_ids=[20, 21, 22],
+            user_id=10,
+            employee_id="MF-0010",
+            role="manager",
+            department="Sales",
+            report_ids=[20, 21, 22],
         )
         risk = check_aggregation_risk("hr_get_salary", {}, principal)
         assert risk is not None
@@ -66,16 +68,22 @@ class TestAggregationCheck:
 
     def test_large_team_ok(self):
         principal = Principal(
-            user_id=10, employee_id="MF-0010", role="manager",
-            department="Sales", report_ids=[20, 21, 22, 23, 24, 25, 26],
+            user_id=10,
+            employee_id="MF-0010",
+            role="manager",
+            department="Sales",
+            report_ids=[20, 21, 22, 23, 24, 25, 26],
         )
         risk = check_aggregation_risk("hr_get_salary", {}, principal)
         assert risk is None
 
     def test_non_salary_tool_ok(self):
         principal = Principal(
-            user_id=10, employee_id="MF-0010", role="manager",
-            department="Sales", report_ids=[20],
+            user_id=10,
+            employee_id="MF-0010",
+            role="manager",
+            department="Sales",
+            report_ids=[20],
         )
         risk = check_aggregation_risk("tickets_search", {}, principal)
         assert risk is None

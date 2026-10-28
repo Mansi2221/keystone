@@ -4,7 +4,6 @@ Usage: python -m company.seed
 """
 
 import logging
-import sys
 from datetime import datetime
 
 from company.canary import CanaryGenerator
@@ -173,7 +172,9 @@ def seed_all() -> None:
         session.commit()
         logger.info(
             "Inserted %d channels, %d memberships, %d messages",
-            len(channel_data), len(member_data), len(message_data),
+            len(channel_data),
+            len(member_data),
+            len(message_data),
         )
 
         # Step 10: CRM
@@ -190,16 +191,18 @@ def seed_all() -> None:
         # Step 11: Canary registry
         logger.info("Registering %d canaries...", canary_gen.count)
         for entry in canary_gen.entries:
-            session.add(CanaryRecord(
-                canary=entry.canary,
-                resource_type=entry.resource_type,
-                resource_id=entry.resource_id,
-                required_permission=entry.required_permission,
-                allowed_roles=entry.allowed_roles,
-                allowed_employee_ids=entry.allowed_employee_ids,
-                protected_values=entry.protected_values,
-                description=entry.description,
-            ))
+            session.add(
+                CanaryRecord(
+                    canary=entry.canary,
+                    resource_type=entry.resource_type,
+                    resource_id=entry.resource_id,
+                    required_permission=entry.required_permission,
+                    allowed_roles=entry.allowed_roles,
+                    allowed_employee_ids=entry.allowed_employee_ids,
+                    protected_values=entry.protected_values,
+                    description=entry.description,
+                )
+            )
         session.commit()
         logger.info("Registered %d canaries", canary_gen.count)
 
@@ -234,6 +237,7 @@ def main() -> None:
     # Dispose the SQLAlchemy engine pool to release all connections
     # before applying RLS (ALTER TABLE needs exclusive access).
     from company.database import engine
+
     engine.dispose()
 
     # Apply RLS policies after seeding

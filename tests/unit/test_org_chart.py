@@ -39,17 +39,20 @@ class TestOrgChart:
         people = seed_data["people"]
         for i, p in enumerate(people):
             if p.manager_index is not None:
-                assert 0 <= p.manager_index < i, (
-                    f"Employee {i} has invalid manager_index {p.manager_index}"
-                )
+                assert 0 <= p.manager_index < i, f"Employee {i} has invalid manager_index {p.manager_index}"
 
     def test_roles_present(self, seed_data):
         """All expected roles should be present."""
         people = seed_data["people"]
         roles = {p.role for p in people}
         expected = {
-            "executive", "manager", "individual_contributor",
-            "hr_partner", "finance_analyst", "sales_rep", "contractor",
+            "executive",
+            "manager",
+            "individual_contributor",
+            "hr_partner",
+            "finance_analyst",
+            "sales_rep",
+            "contractor",
         }
         for role in expected:
             assert role in roles, f"Role {role} missing from org chart"

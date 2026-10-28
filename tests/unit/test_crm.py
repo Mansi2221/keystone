@@ -38,8 +38,12 @@ class TestCRM:
         """Deal stages should be valid."""
         deals = seed_data["deals"]
         valid = {
-            "prospecting", "qualification", "proposal",
-            "negotiation", "closed_won", "closed_lost",
+            "prospecting",
+            "qualification",
+            "proposal",
+            "negotiation",
+            "closed_won",
+            "closed_lost",
         }
         for d in deals:
             assert d["stage"] in valid

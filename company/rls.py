@@ -6,8 +6,8 @@ via SET LOCAL so that RLS policies can read them. The application DB role
 """
 
 import logging
+from collections.abc import Generator
 from contextlib import contextmanager
-from typing import Generator
 
 from sqlalchemy import text
 from sqlalchemy.orm import Session
@@ -220,9 +220,17 @@ CREATE POLICY leave_hr_exec ON leave_records FOR SELECT
 
 
 RLS_TABLES = [
-    "salaries", "performance_reviews", "termination_records",
-    "tickets", "ticket_comments", "documents", "document_chunks",
-    "chat_channels", "chat_messages", "deals", "leave_records",
+    "salaries",
+    "performance_reviews",
+    "termination_records",
+    "tickets",
+    "ticket_comments",
+    "documents",
+    "document_chunks",
+    "chat_channels",
+    "chat_messages",
+    "deals",
+    "leave_records",
 ]
 
 
@@ -232,10 +240,12 @@ def disable_all_rls() -> None:
     Raises RuntimeError if called outside eval_mode.
     """
     from company.config import settings
+
     if not settings.eval_mode:
         raise RuntimeError("Cannot disable RLS outside eval mode")
 
     import psycopg
+
     raw_url = settings.raw_database_url
     with psycopg.connect(raw_url, autocommit=True) as conn:
         cur = conn.cursor()
@@ -271,6 +281,7 @@ def apply_rls_policies() -> None:
     RLS SQL block. SQLAlchemy's text() can't handle multi-statement SQL in psycopg3.
     """
     import psycopg
+
     from company.config import settings
 
     raw_url = settings.raw_database_url
@@ -294,9 +305,17 @@ def apply_rls_policies() -> None:
 
         # Disable RLS on all tables first
         tables_with_rls = [
-            "salaries", "performance_reviews", "termination_records",
-            "tickets", "ticket_comments", "documents", "document_chunks",
-            "chat_channels", "chat_messages", "deals", "leave_records",
+            "salaries",
+            "performance_reviews",
+            "termination_records",
+            "tickets",
+            "ticket_comments",
+            "documents",
+            "document_chunks",
+            "chat_channels",
+            "chat_messages",
+            "deals",
+            "leave_records",
         ]
         for table in tables_with_rls:
             cur.execute(f"ALTER TABLE {table} DISABLE ROW LEVEL SECURITY")
@@ -346,20 +365,16 @@ def rls_session(principal: Principal) -> Generator[Session, None, None]:
     Sets app.user_id, app.role, app.groups, and app.report_ids via SET LOCAL
     so that all queries within this session are filtered by RLS policies.
     """
-    with Session(engine) as session:
-        with session.begin():
-            # SET LOCAL only lasts for the current transaction.
-            # psycopg3 doesn't support parameterized SET, so we use
-            # quote_literal via format to safely inject values.
-            uid = str(int(principal.user_id))  # Ensure it's a safe int
-            role = principal.role.replace("'", "''")
-            groups = ",".join(principal.groups).replace("'", "''")
-            rids = (
-                ",".join(str(int(r)) for r in principal.report_ids)
-                if principal.report_ids else "0"
-            )
-            session.execute(text(f"SET LOCAL app.user_id = '{uid}'"))
-            session.execute(text(f"SET LOCAL app.role = '{role}'"))
-            session.execute(text(f"SET LOCAL app.groups = '{groups}'"))
-            session.execute(text(f"SET LOCAL app.report_ids = '{rids}'"))
-            yield session
+    with Session(engine) as session, session.begin():
+        # SET LOCAL only lasts for the current transaction.
+        # psycopg3 doesn't support parameterized SET, so we use
+        # quote_literal via format to safely inject values.
+        uid = str(int(principal.user_id))  # Ensure it's a safe int
+        role = principal.role.replace("'", "''")
+        groups = ",".join(principal.groups).replace("'", "''")
+        rids = ",".join(str(int(r)) for r in principal.report_ids) if principal.report_ids else "0"
+        session.execute(text(f"SET LOCAL app.user_id = '{uid}'"))
+        session.execute(text(f"SET LOCAL app.role = '{role}'"))
+        session.execute(text(f"SET LOCAL app.groups = '{groups}'"))
+        session.execute(text(f"SET LOCAL app.report_ids = '{rids}'"))
+        yield session

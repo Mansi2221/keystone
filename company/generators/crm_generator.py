@@ -2,7 +2,7 @@
 
 import logging
 import random
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 from faker import Faker
 
@@ -84,12 +84,14 @@ def generate_crm(
     # --- Customers ---
     customers: list[dict] = []
     for i in range(num_customers):
-        customers.append({
-            "name": fake.company(),
-            "industry": rng.choice(INDUSTRIES),
-            "contact_email": fake.company_email(),
-            "created_at": fake.date_time_between(start_date="-5y", end_date="-1m"),
-        })
+        customers.append(
+            {
+                "name": fake.company(),
+                "industry": rng.choice(INDUSTRIES),
+                "contact_email": fake.company_email(),
+                "created_at": fake.date_time_between(start_date="-5y", end_date="-1m"),
+            }
+        )
 
     # --- Deals ---
     deals: list[dict] = []
@@ -122,17 +124,19 @@ def generate_crm(
             description=f"Deal {deal_id}: {title} (${value:,.0f})",
         )
 
-        deals.append({
-            "deal_id": deal_id,
-            "customer_id": customer_db_id,
-            "owner_id": owner_id,
-            "title": title,
-            "value": value,
-            "stage": stage,
-            "created_at": created_at,
-            "updated_at": updated_at,
-            "canary": canary,
-        })
+        deals.append(
+            {
+                "deal_id": deal_id,
+                "customer_id": customer_db_id,
+                "owner_id": owner_id,
+                "title": title,
+                "value": value,
+                "stage": stage,
+                "created_at": created_at,
+                "updated_at": updated_at,
+                "canary": canary,
+            }
+        )
 
     logger.info("Generated %d customers and %d deals", len(customers), len(deals))
     return customers, deals

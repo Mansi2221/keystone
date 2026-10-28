@@ -30,9 +30,9 @@ def _cohens_kappa(judge: list[bool], human: list[bool]) -> float:
         return 0.0
 
     # Contingency table
-    a = sum(1 for j, h in zip(judge, human) if j and h)       # both pass
-    b = sum(1 for j, h in zip(judge, human) if j and not h)   # judge pass, human fail
-    c = sum(1 for j, h in zip(judge, human) if not j and h)   # judge fail, human pass
+    a = sum(1 for j, h in zip(judge, human) if j and h)  # both pass
+    b = sum(1 for j, h in zip(judge, human) if j and not h)  # judge pass, human fail
+    c = sum(1 for j, h in zip(judge, human) if not j and h)  # judge fail, human pass
     d = sum(1 for j, h in zip(judge, human) if not j and not h)  # both fail
 
     po = (a + d) / n  # observed agreement
@@ -84,8 +84,10 @@ def label_session(source_path: str, iteration: str, count: int) -> Path:
         if r.get("expected_answer"):
             print(f"  Expected: {r['expected_answer']}")
         print(f"  Response: {r.get('agent_response', '(no response)')[:500]}")
-        print(f"  LLM judge: {'PASS' if r.get('pass') else 'FAIL'} "
-              f"(score={r.get('score', '?')}, reason={r.get('reasoning', 'n/a')[:80]})")
+        print(
+            f"  LLM judge: {'PASS' if r.get('pass') else 'FAIL'} "
+            f"(score={r.get('score', '?')}, reason={r.get('reasoning', 'n/a')[:80]})"
+        )
 
         while True:
             try:
@@ -104,15 +106,17 @@ def label_session(source_path: str, iteration: str, count: int) -> Path:
             continue
 
         human_pass = choice == "p"
-        labels.append({
-            "case_id": r.get("_ablation_id", r["case_id"]),
-            "suite": r.get("_suite", ""),
-            "message": r["message"],
-            "judge_pass": r.get("pass", False),
-            "judge_score": r.get("score", 0.0),
-            "human_pass": human_pass,
-            "iteration": iteration,
-        })
+        labels.append(
+            {
+                "case_id": r.get("_ablation_id", r["case_id"]),
+                "suite": r.get("_suite", ""),
+                "message": r["message"],
+                "judge_pass": r.get("pass", False),
+                "judge_score": r.get("score", 0.0),
+                "human_pass": human_pass,
+                "iteration": iteration,
+            }
+        )
 
     # Save labels
     with open(out_path, "w") as f:
@@ -127,9 +131,9 @@ def label_session(source_path: str, iteration: str, count: int) -> Path:
         human_labels = [l["human_pass"] for l in labels]
         kappa = _cohens_kappa(judge_labels, human_labels)
         agree = sum(1 for j, h in zip(judge_labels, human_labels) if j == h)
-        print(f"\nQuick stats:")
+        print("\nQuick stats:")
         print(f"  Labeled:    {len(labels)}")
-        print(f"  Agreement:  {agree}/{len(labels)} ({agree/len(labels):.1%})")
+        print(f"  Agreement:  {agree}/{len(labels)} ({agree / len(labels):.1%})")
         print(f"  Cohen's κ:  {kappa:.3f}")
         _interpret_kappa(kappa)
 
@@ -164,10 +168,10 @@ def compute_kappa(labels_path: str) -> None:
     print(f"Cohen's Kappa Analysis: {labels_path}")
     print(f"{'=' * 50}")
     print(f"  Total labeled:  {len(labels)}")
-    print(f"  Agreement:      {agree}/{len(labels)} ({agree/len(labels):.1%})")
+    print(f"  Agreement:      {agree}/{len(labels)} ({agree / len(labels):.1%})")
     print(f"  Cohen's κ:      {kappa:.3f}")
     print()
-    print(f"  Contingency table:")
+    print("  Contingency table:")
     print(f"  {'':>20} Human PASS  Human FAIL")
     print(f"  {'Judge PASS':>20}    {tp:>4}        {fp:>4}")
     print(f"  {'Judge FAIL':>20}    {fn:>4}        {tn:>4}")

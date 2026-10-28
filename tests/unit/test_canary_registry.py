@@ -68,9 +68,7 @@ class TestCanaryRegistry:
         for entry in canary_gen.entries:
             has_roles = len(entry.allowed_roles) > 0
             has_ids = len(entry.allowed_employee_ids) > 0
-            assert has_roles or has_ids, (
-                f"Canary {entry.canary} has no allowed roles or employee IDs"
-            )
+            assert has_roles or has_ids, f"Canary {entry.canary} has no allowed roles or employee IDs"
 
     def test_restricted_records_match_canaries(self, seed_data):
         """Count of restricted records should match canary count per type."""

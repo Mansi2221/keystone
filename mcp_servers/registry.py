@@ -4,7 +4,8 @@ The agent and API gateway use this to discover and invoke tools.
 """
 
 import logging
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 from company.principal import Principal
 from mcp_servers.chat.server import TOOLS as CHAT_TOOLS
@@ -39,16 +40,18 @@ def get_tool_definitions() -> list[dict]:
             if pinfo.get("required"):
                 required.append(pname)
 
-        definitions.append({
-            "name": name,
-            "description": info["description"],
-            "parameters": {
-                "type": "object",
-                "properties": params,
-                "required": required,
-            },
-            "is_write": info.get("write", False),
-        })
+        definitions.append(
+            {
+                "name": name,
+                "description": info["description"],
+                "parameters": {
+                    "type": "object",
+                    "properties": params,
+                    "required": required,
+                },
+                "is_write": info.get("write", False),
+            }
+        )
     return definitions
 
 
