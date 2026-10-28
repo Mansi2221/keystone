@@ -1,10 +1,12 @@
 #!/bin/bash
-# Overnight pipeline: wait for v4, merge, rescore, run v5, record fixtures, generate summary, commit+push.
+# Overnight pipeline: resume stuck iterations, merge, rescore with user-relative
+# leak scoring, run v5, record fixtures, generate summary, commit+push.
 #
 # Usage:
 #   nohup bash scripts/overnight.sh >> evals/reports/overnight.log 2>&1 &
 #
 # Each step logs success/failure. If a step fails, non-dependent steps continue.
+# Iterations that fail twice are marked incomplete in the summary.
 
 set -o pipefail
 
@@ -21,9 +23,11 @@ export DATABASE_URL=postgresql://keystone:keystone_dev_password@localhost:5432/k
 ABLATION_REPORT="evals/reports/ablation_20261028_132251.json"
 LABELS="evals/labels/labels_20261028_205836.jsonl"
 RESCORED_REPORT="${ABLATION_REPORT%.json}_rescored.json"
+CASE_TIMEOUT=120
 
 step_ok=()
 step_fail=()
+incomplete_iterations=()
 
 log() { echo "$(date '+%Y-%m-%d %H:%M:%S') $LOGPREFIX $*"; }
 
@@ -36,13 +40,14 @@ run_step() {
         step_ok+=("$name")
         return 0
     else
-        log "FAIL: $name (exit $?)"
+        local rc=$?
+        log "FAIL: $name (exit $rc)"
         step_fail+=("$name")
-        return 1
+        return $rc
     fi
 }
 
-# ─── Step (a): Wait for v3/v4 ablation (PID 86171) or kill if stuck ───
+# ─── Step (a): Wait for stuck ablation (PID 86171) or kill if no progress ───
 wait_for_ablation() {
     local pid=86171
     local max_wait=1800  # 30 minutes max
@@ -53,13 +58,11 @@ wait_for_ablation() {
     fi
 
     log "Ablation PID $pid still running, checking progress..."
-
-    # Get current case count from log
     local last_case
     last_case=$(grep -oP '\[\K\d+(?=/210\])' evals/reports/ablation_run.log 2>/dev/null | tail -1)
     log "Last completed case: ${last_case:-unknown}/210"
 
-    # Wait up to max_wait seconds, checking for progress every 5 min
+    # Wait up to max_wait, checking for progress every 5 min
     local waited=0
     local check_interval=300
     while kill -0 "$pid" 2>/dev/null && [ "$waited" -lt "$max_wait" ]; do
@@ -88,6 +91,46 @@ wait_for_ablation() {
     return 0
 }
 
+# ─── Step (a2): Resume incomplete iterations with per-case timeout ───
+# Runs each of v0–v5 individually. The ablation runner's progress file
+# enables resume from the last completed case. If an iteration fails twice,
+# mark it incomplete and continue.
+resume_iterations() {
+    local all_iters="v0 v1 v2 v3 v4 v5"
+    for iter in $all_iters; do
+        log "Checking iteration $iter..."
+
+        # Try up to 2 times
+        local attempt
+        local success=false
+        for attempt in 1 2; do
+            log "  Attempt $attempt for $iter"
+            if python3 -m evals.ablation --run "$iter" --case-timeout "$CASE_TIMEOUT"; then
+                log "  $iter completed on attempt $attempt"
+                success=true
+                break
+            else
+                log "  $iter failed on attempt $attempt (exit $?)"
+                if [ "$attempt" -eq 1 ]; then
+                    log "  Retrying $iter..."
+                    sleep 5
+                fi
+            fi
+        done
+
+        if [ "$success" = "false" ]; then
+            log "  $iter INCOMPLETE after 2 attempts"
+            incomplete_iterations+=("$iter")
+        fi
+    done
+
+    if [ ${#incomplete_iterations[@]} -gt 0 ]; then
+        log "Incomplete iterations: ${incomplete_iterations[*]}"
+    else
+        log "All iterations complete"
+    fi
+}
+
 # ─── Step (b): Merge finish → main ───
 merge_to_main() {
     log "Current branch: $(git branch --show-current)"
@@ -98,64 +141,69 @@ merge_to_main() {
     log "Merged finish → main"
 }
 
-# ─── Step (c): Re-score v0-v4 with new scorer ───
+# ─── Step (c): Re-score all iterations with user-relative leak scoring ───
 rescore_all() {
-    log "Re-scoring $ABLATION_REPORT..."
+    # Find the latest ablation report (may have been updated by resume_iterations)
+    local latest
+    latest=$(ls -t evals/reports/ablation_*.json 2>/dev/null | grep -v rescored | head -1)
+    if [ -z "$latest" ]; then
+        latest="$ABLATION_REPORT"
+    fi
+    log "Re-scoring $latest with user-relative leak scoring..."
     python3 -m evals.rescore \
-        --source "$ABLATION_REPORT" \
+        --source "$latest" \
         --kappa "$LABELS" \
         --iteration v2
+    RESCORED_REPORT="${latest%.json}_rescored.json"
     log "Rescored report: $RESCORED_REPORT"
 }
 
-# ─── Step (d): Run v5 ablation (210 cases, PROFILE=local) ───
-run_v5() {
-    log "Launching v5 ablation..."
-    python3 -m evals.ablation --run v5
-    log "v5 ablation complete"
-
-    # Find the newest report
-    local latest
-    latest=$(ls -t evals/reports/ablation_*.json 2>/dev/null | head -1)
-    if [ -n "$latest" ]; then
-        log "v5 report: $latest"
-        # Re-score v5 too
-        python3 -m evals.rescore --source "$latest"
-    fi
-}
-
-# ─── Step (e): Record replay fixtures (7 scenarios x 4 personas + compare) ───
+# ─── Step (d): Record replay fixtures (7 scenarios x 4 personas + compare) ───
 record_fixtures() {
     log "Recording replay fixtures..."
     python3 -m scripts.record_fixtures --compare
     log "Fixtures written to ui-web/public/fixtures/"
 }
 
-# ─── Step (f): Regenerate overnight summary ───
+# ─── Step (e): Regenerate overnight summary ───
 gen_summary() {
     local report="$RESCORED_REPORT"
     if [ ! -f "$report" ]; then
         report="$ABLATION_REPORT"
     fi
+
+    local incomplete_flag=""
+    if [ ${#incomplete_iterations[@]} -gt 0 ]; then
+        incomplete_flag="--incomplete $(IFS=,; echo "${incomplete_iterations[*]}")"
+    fi
+
     log "Generating overnight summary from $report..."
     python3 -m scripts.gen_overnight_summary \
         --report "$report" \
         --labels "$LABELS" \
-        --original "$ABLATION_REPORT"
+        --original "$ABLATION_REPORT" \
+        $incomplete_flag
     log "Summary written to docs/overnight-summary.md"
 }
 
-# ─── Step (g): Commit and push ───
+# ─── Step (f): Commit and push ───
 commit_and_push() {
     git add -A evals/reports/ docs/overnight-summary.md ui-web/public/fixtures/ 2>/dev/null || true
     if git diff --cached --quiet; then
         log "Nothing to commit"
         return 0
     fi
-    git commit -m "overnight: rescore v0-v4, v5 ablation, fixtures, summary
+
+    local incomplete_msg=""
+    if [ ${#incomplete_iterations[@]} -gt 0 ]; then
+        incomplete_msg="Incomplete: ${incomplete_iterations[*]}"
+    fi
+
+    git commit -m "overnight: rescore v0-v5, fixtures, summary
 
 Steps completed: ${step_ok[*]}
 Steps failed: ${step_fail[*]:-none}
+${incomplete_msg}
 
 Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>"
     git push origin finish
@@ -167,27 +215,37 @@ Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>"
 log "Starting overnight pipeline"
 log "Working directory: $REPO_ROOT"
 log "Profile: $PROFILE"
+log "Case timeout: ${CASE_TIMEOUT}s"
+log ""
+log "Step order:"
+log "  (a)  Wait for stuck ablation / kill if no progress"
+log "  (a2) Resume all iterations v0-v5 with ${CASE_TIMEOUT}s per-case timeout (retry once on failure)"
+log "  (b)  Merge finish → main"
+log "  (c)  Re-score all with user-relative leak scoring + grounding checker"
+log "  (d)  Record replay fixtures 7×4 + compare"
+log "  (e)  Regenerate overnight-summary.md"
+log "  (f)  Commit and push"
+log ""
 
 run_step "wait-for-ablation" wait_for_ablation
+
+run_step "resume-iterations" resume_iterations || true
 
 run_step "merge-to-main" merge_to_main || true
 
 run_step "rescore-all" rescore_all || true
 
-# v5 depends on merge (needs v5 fixes on main), but try anyway
-run_step "run-v5" run_v5 || true
-
-# Fixtures depend on DB and agent working
 run_step "record-fixtures" record_fixtures || true
 
-# Summary depends on rescore
 run_step "gen-summary" gen_summary || true
 
-# Commit whatever we have
 run_step "commit-and-push" commit_and_push || true
 
 log "═══════════════════════════════════════════════════════"
 log "Overnight pipeline complete"
 log "  Succeeded: ${step_ok[*]:-none}"
 log "  Failed: ${step_fail[*]:-none}"
+if [ ${#incomplete_iterations[@]} -gt 0 ]; then
+    log "  Incomplete iterations: ${incomplete_iterations[*]}"
+fi
 log "═══════════════════════════════════════════════════════"
