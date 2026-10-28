@@ -36,26 +36,28 @@ SEED = 42
 
 # Files whose content affects ablation results.  If any of them change
 # mid-run, the results are invalid.
-INTEGRITY_FILES = sorted([
-    "agent/graph.py",
-    "agent/guards.py",
-    "agent/prompts.py",
-    "company/config.py",
-    "company/principal.py",
-    "company/rls.py",
-    "company/seed.py",
-    "mcp_servers/docs/server.py",
-    "mcp_servers/hr/server.py",
-    "mcp_servers/crm/server.py",
-    "mcp_servers/tickets/server.py",
-    "mcp_servers/chat/server.py",
-    "policy/resource_policies/document.yaml",
-    "policy/resource_policies/salary.yaml",
-    "policy/resource_policies/deal.yaml",
-    "policy/resource_policies/ticket.yaml",
-    "policy/resource_policies/chat.yaml",
-    "evals/sets/ablation.jsonl",
-])
+INTEGRITY_FILES = sorted(
+    [
+        "agent/graph.py",
+        "agent/guards.py",
+        "agent/prompts.py",
+        "company/config.py",
+        "company/principal.py",
+        "company/rls.py",
+        "company/seed.py",
+        "mcp_servers/docs/server.py",
+        "mcp_servers/hr/server.py",
+        "mcp_servers/crm/server.py",
+        "mcp_servers/tickets/server.py",
+        "mcp_servers/chat/server.py",
+        "policy/resource_policies/document.yaml",
+        "policy/resource_policies/salary.yaml",
+        "policy/resource_policies/deal.yaml",
+        "policy/resource_policies/ticket.yaml",
+        "policy/resource_policies/chat.yaml",
+        "evals/sets/ablation.jsonl",
+    ]
+)
 
 
 def _git_commit_hash() -> str:
@@ -63,7 +65,8 @@ def _git_commit_hash() -> str:
     try:
         return subprocess.check_output(
             ["git", "rev-parse", "--short", "HEAD"],
-            stderr=subprocess.DEVNULL, text=True,
+            stderr=subprocess.DEVNULL,
+            text=True,
         ).strip()
     except Exception:
         return "unknown"
@@ -163,15 +166,21 @@ ITERATION_ORDER = ["v0", "v1", "v2", "v3", "v4"]
 # ── Attack type tags used for leak breakdown ────────────────────
 
 ATTACK_TYPES = [
-    "direct", "social_engineering", "role_impersonation",
-    "aggregation", "prompt_injection", "cross_system",
-    "private_access", "bulk_extraction",
+    "direct",
+    "social_engineering",
+    "role_impersonation",
+    "aggregation",
+    "prompt_injection",
+    "cross_system",
+    "private_access",
+    "bulk_extraction",
 ]
 
 
 # ================================================================
 # Generate the fixed ablation set
 # ================================================================
+
 
 def generate_ablation_set() -> Path:
     """Create a fixed, stratified ablation set from YAML suites."""
@@ -264,7 +273,7 @@ def _load_suite_cases(name: str) -> list[dict]:
 def load_ablation_set() -> list[dict]:
     """Load the fixed ablation set."""
     if not ABLATION_SET.exists():
-        raise FileNotFoundError(f"Ablation set not found. Run: python -m evals.ablation --generate")
+        raise FileNotFoundError("Ablation set not found. Run: python -m evals.ablation --generate")
     cases = []
     with open(ABLATION_SET) as f:
         for line in f:
@@ -277,9 +286,11 @@ def load_ablation_set() -> list[dict]:
 # Run a single ablation iteration
 # ================================================================
 
+
 def _configure_protections(iteration: str) -> None:
     """Set ablation flags for the given iteration."""
     from company.config import settings
+
     cfg = ITERATIONS[iteration]
 
     settings.eval_mode = True
@@ -293,6 +304,7 @@ def _configure_protections(iteration: str) -> None:
 
     # Toggle RLS at the database level
     from company.rls import disable_all_rls, enable_all_rls
+
     if cfg["rls"]:
         enable_all_rls()
     else:
@@ -310,8 +322,8 @@ def run_iteration(
     data_checksum: str = "",
 ) -> dict[str, Any]:
     """Run a single ablation iteration and return results."""
-    from evals.runner import _run_case, _build_principal, _load_canary_registry
     from company.llm import get_call_count, reset_call_count
+    from evals.runner import _run_case
 
     _configure_protections(iteration)
     reset_call_count()
@@ -336,8 +348,12 @@ def run_iteration(
         eta = (elapsed / i) * (len(cases) - i)
         logger.info(
             "  [%d/%d] %s %s (%.0fs elapsed, ETA %.0fs)",
-            i, len(cases), case_result.get("_ablation_id", case_result["case_id"]),
-            status, elapsed, eta,
+            i,
+            len(cases),
+            case_result.get("_ablation_id", case_result["case_id"]),
+            status,
+            elapsed,
+            eta,
         )
 
     elapsed = time.time() - start
@@ -399,6 +415,7 @@ def run_iteration(
 # ================================================================
 # Reporting
 # ================================================================
+
 
 def write_ablation_report(all_iterations: dict[str, dict]) -> Path:
     """Write ablation results to JSON and markdown."""
@@ -522,6 +539,7 @@ def print_results_table(all_iterations: dict[str, dict]) -> None:
 # Main
 # ================================================================
 
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Ablation study runner")
     parser.add_argument("--generate", action="store_true", help="Generate the fixed ablation set")
@@ -542,6 +560,7 @@ def main() -> None:
 
     if args.run:
         from company.llm import active_profile_info
+
         info = active_profile_info()
 
         # Capture code-freeze snapshot
@@ -580,13 +599,17 @@ def main() -> None:
                     if prev_commit and prev_commit != run_commit:
                         logger.warning(
                             "Discarding %s: ran on commit %s, now on %s",
-                            prev_v, prev_commit, run_commit,
+                            prev_v,
+                            prev_commit,
+                            run_commit,
                         )
                         del all_results[prev_v]
                     elif prev_cksum and prev_cksum != run_checksum:
                         logger.warning(
                             "Discarding %s: data checksum changed (%s -> %s)",
-                            prev_v, prev_cksum, run_checksum,
+                            prev_v,
+                            prev_cksum,
+                            run_checksum,
                         )
                         del all_results[prev_v]
             except Exception:
@@ -613,16 +636,21 @@ def main() -> None:
 
             logger.info(
                 "%s done: %d leaks, %d/%d task, %d/%d over-refusal, %.0fs",
-                v, result["leaks"],
-                result["task_passed"], result["task_total"],
-                result["or_passed"], result["or_total"],
+                v,
+                result["leaks"],
+                result["task_passed"],
+                result["task_total"],
+                result["or_passed"],
+                result["or_total"],
                 result["elapsed_seconds"],
             )
 
         # Restore protections after ablation
         from company.config import settings
+
         settings.eval_mode = False
         from company.rls import enable_all_rls
+
         try:
             enable_all_rls()
         except Exception:

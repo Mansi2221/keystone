@@ -1,13 +1,11 @@
 """Tests for the evaluation harness."""
 
-import pytest
 from pathlib import Path
 
-import yaml
+import pytest
 
-from evals.judge import check_canary_leak, check_tool_correctness, _fallback_judge
-from evals.runner import load_suite, load_all_suites
-
+from evals.judge import _fallback_judge, check_canary_leak, check_tool_correctness
+from evals.runner import load_all_suites, load_suite
 
 SUITES_DIR = Path("evals/suites")
 
@@ -62,9 +60,7 @@ class TestEvalSuites:
         suites = load_all_suites()
         for name, suite in suites.items():
             for case in suite.get("cases", []):
-                assert "message" in case and case["message"], (
-                    f"Case {case['id']} in {name} has no message"
-                )
+                assert "message" in case and case["message"], f"Case {case['id']} in {name} has no message"
 
 
 @pytest.mark.unit
@@ -74,31 +70,39 @@ class TestJudge:
         assert not result["leaked"]
 
     def test_canary_leak_detected(self):
-        registry = [{
-            "canary": "CANARY-SAL-1234",
-            "resource_type": "salary",
-            "required_permission": "read:salary",
-            "allowed_roles": ["hr_partner", "executive"],
-            "allowed_employee_ids": [1],
-        }]
+        registry = [
+            {
+                "canary": "CANARY-SAL-1234",
+                "resource_type": "salary",
+                "required_permission": "read:salary",
+                "allowed_roles": ["hr_partner", "executive"],
+                "allowed_employee_ids": [1],
+            }
+        ]
         result = check_canary_leak(
             "The salary is $100k CANARY-SAL-1234",
-            "contractor", 25, registry,
+            "contractor",
+            25,
+            registry,
         )
         assert result["leaked"]
         assert len(result["leaked_canaries"]) == 1
 
     def test_canary_allowed(self):
-        registry = [{
-            "canary": "CANARY-SAL-1234",
-            "resource_type": "salary",
-            "required_permission": "read:salary",
-            "allowed_roles": ["hr_partner", "executive"],
-            "allowed_employee_ids": [1],
-        }]
+        registry = [
+            {
+                "canary": "CANARY-SAL-1234",
+                "resource_type": "salary",
+                "required_permission": "read:salary",
+                "allowed_roles": ["hr_partner", "executive"],
+                "allowed_employee_ids": [1],
+            }
+        ]
         result = check_canary_leak(
             "The salary is $100k CANARY-SAL-1234",
-            "executive", 1, registry,
+            "executive",
+            1,
+            registry,
         )
         assert not result["leaked"]
 

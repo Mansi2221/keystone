@@ -1,7 +1,7 @@
 """Agent state definition for the LangGraph graph."""
 
 from dataclasses import dataclass, field
-from typing import Any, Literal
+from typing import Any
 
 from company.principal import Principal
 

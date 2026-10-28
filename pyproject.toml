@@ -49,10 +49,27 @@ packages = ["company", "agent", "api", "policy", "mcp_servers", "evals", "ui"]
 
 [tool.ruff]
 target-version = "py312"
-line-length = 100
+line-length = 130
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "W", "UP", "B", "SIM", "TCH"]
+ignore = [
+    "B008",   # function-call-in-default-argument (FastAPI Depends pattern)
+    "B905",   # zip-without-explicit-strict (not needed for paired iterables)
+    "E741",   # ambiguous-variable-name (a, b, c in Cohen's kappa)
+    "SIM102", # collapsible-if (readability)
+    "SIM105", # suppressible-exception (readability)
+    "SIM108", # if-else-block-instead-of-if-exp (readability)
+    "SIM113", # enumerate-for-loop (readability)
+    "SIM117", # multiple-with-statements (readability)
+    "E712",   # true-false-comparison (sqlalchemy filter patterns)
+    "B904",   # raise-without-from-inside-except
+    "F841",   # unused-variable (debugging temporaries)
+    "B007",   # unused-loop-control-variable
+    "SIM910", # dict-get-with-none-default
+    "TC003",  # typing-only-standard-library-import
+]
+per-file-ignores = {"scripts/*" = ["E501"], "ui_streamlit/*" = ["E501"], "company/generators/*" = ["E501"]}
 
 [tool.mypy]
 python_version = "3.12"

@@ -9,7 +9,7 @@ All queries go through RLS-protected sessions.
 import logging
 from typing import Any
 
-from sqlalchemy import select, func
+from sqlalchemy import select
 
 from company.models import (
     Department,
@@ -17,7 +17,6 @@ from company.models import (
     LeaveRecord,
     PerformanceReview,
     Salary,
-    TerminationRecord,
 )
 from company.principal import Principal
 from company.rls import rls_session
@@ -53,19 +52,21 @@ def search_employees(
         stmt = stmt.limit(limit)
 
         results = session.execute(stmt).scalars().all()
-        return tool_result([
-            {
-                "id": e.id,
-                "employee_id": e.employee_id,
-                "name": f"{e.first_name} {e.last_name}",
-                "email": e.email,
-                "role": e.role,
-                "title": e.title,
-                "department": e.department.name,
-                "is_active": e.is_active,
-            }
-            for e in results
-        ])
+        return tool_result(
+            [
+                {
+                    "id": e.id,
+                    "employee_id": e.employee_id,
+                    "name": f"{e.first_name} {e.last_name}",
+                    "email": e.email,
+                    "role": e.role,
+                    "title": e.title,
+                    "department": e.department.name,
+                    "is_active": e.is_active,
+                }
+                for e in results
+            ]
+        )
 
 
 def get_employee(principal: Principal, employee_id: int) -> dict:
@@ -93,11 +94,7 @@ def get_employee(principal: Principal, employee_id: int) -> dict:
 def get_salary(principal: Principal, employee_id: int) -> dict:
     """Get salary records for an employee. Protected by RLS."""
     with rls_session(principal) as session:
-        stmt = (
-            select(Salary)
-            .where(Salary.employee_id == employee_id)
-            .order_by(Salary.effective_date.desc())
-        )
+        stmt = select(Salary).where(Salary.employee_id == employee_id).order_by(Salary.effective_date.desc())
         results = session.execute(stmt).scalars().all()
 
         if not results:
@@ -107,16 +104,18 @@ def get_salary(principal: Principal, employee_id: int) -> dict:
                 "You can only view your own salary, your reports' (if manager), or all (if HR/executive).",
             )
 
-        return tool_result([
-            {
-                "employee_id": s.employee_id,
-                "amount": s.amount,
-                "currency": s.currency,
-                "effective_date": s.effective_date.isoformat(),
-                "canary": s.canary,
-            }
-            for s in results
-        ])
+        return tool_result(
+            [
+                {
+                    "employee_id": s.employee_id,
+                    "amount": s.amount,
+                    "currency": s.currency,
+                    "effective_date": s.effective_date.isoformat(),
+                    "canary": s.canary,
+                }
+                for s in results
+            ]
+        )
 
 
 def get_reviews(principal: Principal, employee_id: int) -> dict:
@@ -135,43 +134,43 @@ def get_reviews(principal: Principal, employee_id: int) -> dict:
                 "You can only view your own reviews or all (if HR/executive).",
             )
 
-        return tool_result([
-            {
-                "employee_id": r.employee_id,
-                "reviewer_id": r.reviewer_id,
-                "review_date": r.review_date.isoformat(),
-                "rating": r.rating,
-                "summary": r.summary,
-                "canary": r.canary,
-            }
-            for r in results
-        ])
+        return tool_result(
+            [
+                {
+                    "employee_id": r.employee_id,
+                    "reviewer_id": r.reviewer_id,
+                    "review_date": r.review_date.isoformat(),
+                    "rating": r.rating,
+                    "summary": r.summary,
+                    "canary": r.canary,
+                }
+                for r in results
+            ]
+        )
 
 
 def get_leave_records(principal: Principal, employee_id: int) -> dict:
     """Get leave records for an employee. Protected by RLS."""
     with rls_session(principal) as session:
-        stmt = (
-            select(LeaveRecord)
-            .where(LeaveRecord.employee_id == employee_id)
-            .order_by(LeaveRecord.start_date.desc())
-        )
+        stmt = select(LeaveRecord).where(LeaveRecord.employee_id == employee_id).order_by(LeaveRecord.start_date.desc())
         results = session.execute(stmt).scalars().all()
 
         if not results:
             return access_denied("leave records")
 
-        return tool_result([
-            {
-                "employee_id": l.employee_id,
-                "leave_type": l.leave_type,
-                "start_date": l.start_date.isoformat(),
-                "end_date": l.end_date.isoformat(),
-                "status": l.status,
-                "reason": l.reason,
-            }
-            for l in results
-        ])
+        return tool_result(
+            [
+                {
+                    "employee_id": l.employee_id,
+                    "leave_type": l.leave_type,
+                    "start_date": l.start_date.isoformat(),
+                    "end_date": l.end_date.isoformat(),
+                    "status": l.status,
+                    "reason": l.reason,
+                }
+                for l in results
+            ]
+        )
 
 
 def get_org_chart(principal: Principal, root_employee_id: int | None = None) -> dict:
@@ -185,9 +184,7 @@ def get_org_chart(principal: Principal, root_employee_id: int | None = None) -> 
 
             def build_tree(eid: int) -> dict:
                 e = emp_map[eid]
-                reports = [
-                    build_tree(r.id) for r in all_emps if r.manager_id == eid
-                ]
+                reports = [build_tree(r.id) for r in all_emps if r.manager_id == eid]
                 return {
                     "id": e.id,
                     "name": f"{e.first_name} {e.last_name}",
@@ -202,16 +199,18 @@ def get_org_chart(principal: Principal, root_employee_id: int | None = None) -> 
 
         # Full org
         all_emps = session.execute(stmt).scalars().all()
-        return tool_result([
-            {
-                "id": e.id,
-                "name": f"{e.first_name} {e.last_name}",
-                "title": e.title,
-                "department": e.department.name,
-                "manager_id": e.manager_id,
-            }
-            for e in all_emps
-        ])
+        return tool_result(
+            [
+                {
+                    "id": e.id,
+                    "name": f"{e.first_name} {e.last_name}",
+                    "title": e.title,
+                    "department": e.department.name,
+                    "manager_id": e.manager_id,
+                }
+                for e in all_emps
+            ]
+        )
 
 
 # Tool registry for the MCP protocol

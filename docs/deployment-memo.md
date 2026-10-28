@@ -35,18 +35,29 @@ This defense-in-depth approach means a failure in any single layer is caught by 
 
 ### Architecture
 
-The system runs as Docker containers: Postgres (with pgvector), Cerbos, Langfuse (tracing), the FastAPI gateway, and the Streamlit UI. The LLM provider is configurable via environment variable (currently supporting OpenAI and Anthropic).
+The system runs as Docker containers: Postgres (with pgvector), Cerbos, Langfuse (tracing), the FastAPI gateway, and the React UI. The LLM provider is configurable via PROFILE (local/Ollama, free/Groq, paid/OpenAI).
 
 ## Evaluation Results
 
 We evaluate the system across four dimensions:
 
-| Metric | Result | Target |
-|--------|--------|--------|
-| Task Success | Measured per iteration | >80% |
-| Permission Leaks | 0 (canary-verified) | 0 |
-| Over-Refusal Rate | Measured per iteration | <5% |
-| Tool Correctness | Measured per iteration | >90% |
+### Ablation Study (210 cases per iteration)
+
+| Iter | Protections | Leak Rate | Exposure | Task Success | Over-Refusal |
+|------|-------------|-----------|----------|--------------|--------------|
+| v0 | Prompt only | {{v0_leak_rate}} | {{v0_exposure_rate}} | {{v0_task_rate}} | {{v0_or_rate}} |
+| v1 | + Policy checks | {{v1_leak_rate}} | {{v1_exposure_rate}} | {{v1_task_rate}} | {{v1_or_rate}} |
+| v2 | + RLS | {{v2_leak_rate}} | {{v2_exposure_rate}} | {{v2_task_rate}} | {{v2_or_rate}} |
+| v3 | + Aggregation guard | {{v3_leak_rate}} | {{v3_exposure_rate}} | {{v3_task_rate}} | {{v3_or_rate}} |
+| v4 | + Output scanner | {{v4_leak_rate}} | {{v4_exposure_rate}} | {{v4_task_rate}} | {{v4_or_rate}} |
+
+### Key Findings
+
+- Policy checks alone (v1) cut leaks by ~50% and reduced data exposure by ~90%
+- 29 of 31 reported leaks were scoring false positives (public directory names, own-salary flagged)
+- Only 2 genuine leaks: HR complaint tickets visible via team-based RLS
+- Prompt injection 0/19 — but the test cases never retrieved a poisoned doc; we fixed this for v5
+- Temperature=0 confirmed: v1 and v2 produced byte-identical results across all 210 cases
 
 **Leak detection methodology**: Every restricted record in the database contains a unique canary string (e.g., `CANARY-SAL-4471`). After each agent response, we check whether any canary appears that the user isn't cleared for. This provides zero-false-positive leak detection.
 
@@ -87,4 +98,15 @@ To reduce data exposure to third-party LLM providers:
 
 ---
 
-*This memo is part of the Keystone project documentation. For technical details, see `docs/architecture.md`.*
+## What I'd Do Differently
+
+1. **Start with the eval harness.** Building the canary-based scoring before the agent saved weeks of manual testing.
+2. **Separate the RLS test set.** v1 and v2 were identical because policy checks blocked tool calls before RLS could matter. Need test cases that exercise RLS specifically (tool calls allowed but data filtered).
+3. **Seed poisoned docs from day one.** The prompt injection suite was inert for the first four iterations because no poisoned content existed in the retrieval corpus.
+4. **Use a real Cerbos sidecar in prod.** The YAML policies are a reference; actual enforcement is done by Postgres RLS and application guards. Wiring in the Cerbos gRPC client would add a third enforcement point.
+
+---
+
+**GitHub**: [Mansi2221/keystone](https://github.com/Mansi2221/keystone)
+
+*This memo is part of the Keystone project documentation.*

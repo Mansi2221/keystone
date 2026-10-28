@@ -37,7 +37,8 @@ def reset_db() -> None:
 
     # Drop all RLS policies first — they reference tables and block DROP TABLE
     with engine.connect() as conn:
-        conn.execute(text("""
+        conn.execute(
+            text("""
             DO $$
             DECLARE
                 pol RECORD;
@@ -49,7 +50,8 @@ def reset_db() -> None:
                     EXECUTE format('DROP POLICY IF EXISTS %I ON %I', pol.policyname, pol.tablename);
                 END LOOP;
             END $$;
-        """))
+        """)
+        )
         conn.commit()
 
     Base.metadata.drop_all(bind=engine)

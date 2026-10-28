@@ -9,7 +9,7 @@ from datetime import datetime
 
 from sqlalchemy import select
 
-from company.models import Employee, Ticket, TicketComment
+from company.models import Ticket, TicketComment
 from company.principal import Principal
 from company.rls import rls_session
 from mcp_servers.base import access_denied, tool_result
@@ -47,22 +47,24 @@ def search_tickets(
         stmt = stmt.order_by(Ticket.updated_at.desc()).limit(limit)
         results = session.execute(stmt).scalars().all()
 
-        return tool_result([
-            {
-                "ticket_id": t.ticket_id,
-                "title": t.title,
-                "status": t.status,
-                "priority": t.priority,
-                "category": t.category,
-                "team": t.team,
-                "owner_id": t.owner_id,
-                "assignee_id": t.assignee_id,
-                "created_at": t.created_at.isoformat(),
-                "updated_at": t.updated_at.isoformat(),
-                "canary": t.canary,
-            }
-            for t in results
-        ])
+        return tool_result(
+            [
+                {
+                    "ticket_id": t.ticket_id,
+                    "title": t.title,
+                    "status": t.status,
+                    "priority": t.priority,
+                    "category": t.category,
+                    "team": t.team,
+                    "owner_id": t.owner_id,
+                    "assignee_id": t.assignee_id,
+                    "created_at": t.created_at.isoformat(),
+                    "updated_at": t.updated_at.isoformat(),
+                    "canary": t.canary,
+                }
+                for t in results
+            ]
+        )
 
 
 def get_ticket(principal: Principal, ticket_id: str) -> dict:
@@ -74,20 +76,22 @@ def get_ticket(principal: Principal, ticket_id: str) -> dict:
         if not ticket:
             return access_denied("ticket", "Ticket not found or access denied.")
 
-        return tool_result({
-            "ticket_id": ticket.ticket_id,
-            "title": ticket.title,
-            "description": ticket.description,
-            "status": ticket.status,
-            "priority": ticket.priority,
-            "category": ticket.category,
-            "team": ticket.team,
-            "owner_id": ticket.owner_id,
-            "assignee_id": ticket.assignee_id,
-            "created_at": ticket.created_at.isoformat(),
-            "updated_at": ticket.updated_at.isoformat(),
-            "canary": ticket.canary,
-        })
+        return tool_result(
+            {
+                "ticket_id": ticket.ticket_id,
+                "title": ticket.title,
+                "description": ticket.description,
+                "status": ticket.status,
+                "priority": ticket.priority,
+                "category": ticket.category,
+                "team": ticket.team,
+                "owner_id": ticket.owner_id,
+                "assignee_id": ticket.assignee_id,
+                "created_at": ticket.created_at.isoformat(),
+                "updated_at": ticket.updated_at.isoformat(),
+                "canary": ticket.canary,
+            }
+        )
 
 
 def list_ticket_comments(principal: Principal, ticket_id: str, limit: int = 50) -> dict:
@@ -99,22 +103,19 @@ def list_ticket_comments(principal: Principal, ticket_id: str, limit: int = 50) 
         if not ticket:
             return access_denied("ticket comments")
 
-        stmt = (
-            select(TicketComment)
-            .where(TicketComment.ticket_id == ticket.id)
-            .order_by(TicketComment.created_at)
-            .limit(limit)
-        )
+        stmt = select(TicketComment).where(TicketComment.ticket_id == ticket.id).order_by(TicketComment.created_at).limit(limit)
         results = session.execute(stmt).scalars().all()
-        return tool_result([
-            {
-                "id": c.id,
-                "author_id": c.author_id,
-                "content": c.content,
-                "created_at": c.created_at.isoformat(),
-            }
-            for c in results
-        ])
+        return tool_result(
+            [
+                {
+                    "id": c.id,
+                    "author_id": c.author_id,
+                    "content": c.content,
+                    "created_at": c.created_at.isoformat(),
+                }
+                for c in results
+            ]
+        )
 
 
 def update_ticket_status(
@@ -138,13 +139,15 @@ def update_ticket_status(
         ticket.updated_at = datetime.utcnow()
         session.flush()
 
-        return tool_result({
-            "ticket_id": ticket.ticket_id,
-            "old_status": old_status,
-            "new_status": new_status,
-            "action": "update_ticket_status",
-            "requires_approval": True,
-        })
+        return tool_result(
+            {
+                "ticket_id": ticket.ticket_id,
+                "old_status": old_status,
+                "new_status": new_status,
+                "action": "update_ticket_status",
+                "requires_approval": True,
+            }
+        )
 
 
 def add_ticket_comment(
@@ -168,12 +171,14 @@ def add_ticket_comment(
         session.add(comment)
         session.flush()
 
-        return tool_result({
-            "ticket_id": ticket_id,
-            "comment_id": comment.id,
-            "action": "add_ticket_comment",
-            "requires_approval": True,
-        })
+        return tool_result(
+            {
+                "ticket_id": ticket_id,
+                "comment_id": comment.id,
+                "action": "add_ticket_comment",
+                "requires_approval": True,
+            }
+        )
 
 
 TOOLS = {
