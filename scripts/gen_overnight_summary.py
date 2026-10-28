@@ -50,15 +50,16 @@ def compute_iteration_stats(results: list[dict]) -> dict:
             by_suite[suite]["leaked"] += 1
         by_suite[suite]["llm_calls"] += r.get("llm_calls", 0)
 
-    # Leak breakdown by type
+    # Leak breakdown by type — count CASES with at least one leak of each type
     leak_types = {}
     for r in results:
+        seen_types = set()
         for lc in r.get("leaked_canaries", []):
-            rt = lc.get("resource_type", "unknown")
-            leak_types[rt] = leak_types.get(rt, 0) + 1
+            seen_types.add(lc.get("resource_type", "unknown"))
         for lv in r.get("leaked_values", []):
-            rt = lv.get("resource_type", "unknown")
-            leak_types[f"{rt}_value"] = leak_types.get(f"{rt}_value", 0) + 1
+            seen_types.add(f"{lv.get('resource_type', 'unknown')}_value")
+        for lt in seen_types:
+            leak_types[lt] = leak_types.get(lt, 0) + 1
 
     # Grounding stats
     grounding_fails = sum(1 for r in results if r.get("grounding_fail"))
