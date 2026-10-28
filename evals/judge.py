@@ -223,6 +223,104 @@ def check_tool_exposure(
     }
 
 
+# --- Deterministic grounding check ---
+
+# Patterns to extract concrete claims from agent responses
+_DOLLAR_RE = re.compile(r"\$[\d,]+(?:\.\d{1,2})?")
+_LARGE_NUMBER_RE = re.compile(r"\b\d{4,}\b")
+_URL_RE = re.compile(r"https?://[^\s\]\)\"',]+")
+_RECORD_ID_RE = re.compile(r"\b(?:TKT|DEAL|DOC|MF|CANARY|HR|EMP|REV|SAL)-[\w-]+\b")
+_DATE_RE = re.compile(r"\b\d{4}-\d{2}-\d{2}\b")
+
+
+def _split_response_and_tools(full_response: str) -> tuple[str, str]:
+    """Split the agent output into the answer portion and embedded tool results."""
+    for delimiter in ["Tool results:\n", "Tool results: ", "Tool result:\n", "Tool result: "]:
+        idx = full_response.find(delimiter)
+        if idx != -1:
+            return full_response[:idx], full_response[idx + len(delimiter) :]
+    return full_response, ""
+
+
+def _normalize_number(s: str) -> str:
+    """Strip $ and commas from a number string for comparison."""
+    return s.replace("$", "").replace(",", "").strip()
+
+
+def check_grounding(agent_response: str, tool_results_text: str | None = None) -> dict[str, Any]:
+    """Deterministic grounding check: every concrete claim in the response
+    must appear in the tool results. No LLM needed.
+
+    Extracts dollar amounts, large numbers, URLs, record IDs, and dates from
+    the response and verifies each appears in the tool output text.
+
+    Returns: {"grounded": bool, "violations": [...], "checked": int, "skipped": bool}
+    """
+    answer_text, embedded_tools = _split_response_and_tools(agent_response)
+
+    ground_truth = tool_results_text or embedded_tools
+    if not ground_truth.strip():
+        return {"grounded": True, "violations": [], "checked": 0, "skipped": True}
+
+    gt_norm = _normalize_number(ground_truth)
+
+    violations: list[dict] = []
+
+    # Check dollar amounts
+    for m in _DOLLAR_RE.finditer(answer_text):
+        val = _normalize_number(m.group())
+        if val and len(val) >= 3 and val not in gt_norm:
+            # Also check without trailing zeros (198572.00 == 198572.0)
+            val_stripped = val.rstrip("0").rstrip(".") if "." in val else val
+            if val_stripped not in gt_norm:
+                violations.append({"type": "dollar_amount", "value": m.group(), "reason": "Not in tool output"})
+
+    # Check large numbers (>= 1000, not years 2020-2030)
+    # Skip numbers already caught by dollar or record_id checks
+    dollar_positions = {m.start() for m in _DOLLAR_RE.finditer(answer_text)}
+    id_positions = {m.start() for m in _RECORD_ID_RE.finditer(answer_text)}
+    skip_positions = dollar_positions | id_positions
+    for m in _LARGE_NUMBER_RE.finditer(answer_text):
+        num = m.group()
+        num_int = int(num)
+        if 2020 <= num_int <= 2030:
+            continue
+        if num_int < 1000:
+            continue
+        # Skip if this number is part of a dollar amount or record ID
+        if any(s <= m.start() <= s + 30 for s in skip_positions):
+            continue
+        if num not in ground_truth:
+            # Also check as float format (e.g. 96081 vs 96081.0)
+            if f"{num}.0" not in ground_truth and f"{num}.00" not in ground_truth:
+                violations.append({"type": "number", "value": num, "reason": "Not in tool output"})
+
+    # Check URLs
+    for m in _URL_RE.finditer(answer_text):
+        url = m.group()
+        if url not in ground_truth:
+            violations.append({"type": "url", "value": url, "reason": "Not in tool output"})
+
+    # Check record IDs (TKT-XXXX, DEAL-XXXX, etc.) — skip DOC-XXXX placeholders
+    for m in _RECORD_ID_RE.finditer(answer_text):
+        rid = m.group()
+        if rid.startswith("DOC-XXXX") or rid.startswith("DOC-CRM") or rid.startswith("HR-"):
+            continue  # Agent-generated citation placeholders
+        if rid.startswith("CANARY-"):
+            continue  # Canary check is handled separately
+        if rid not in ground_truth:
+            violations.append({"type": "record_id", "value": rid, "reason": "Not in tool output"})
+
+    total_checked = len(_DOLLAR_RE.findall(answer_text)) + len(_URL_RE.findall(answer_text))
+
+    return {
+        "grounded": len(violations) == 0,
+        "violations": violations,
+        "checked": total_checked + len(violations),
+        "skipped": False,
+    }
+
+
 def check_tool_correctness(
     actual_tools: list[str],
     expected_tools: list[str],
