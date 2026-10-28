@@ -303,6 +303,8 @@ async def health() -> dict:
 
 
 # --- Response cache (same user + question → replay cached SSE events) ---
+# Key includes user_id AND role, so cached responses never cross users.
+# Call clear_response_cache() after seed data or policy changes.
 
 _response_cache: dict[str, tuple[float, list[str]]] = {}
 _CACHE_TTL = 300  # 5 minutes
@@ -311,6 +313,13 @@ _CACHE_TTL = 300  # 5 minutes
 def _cache_key_for(user_id: int, role: str, message: str) -> str:
     raw = f"{user_id}:{role}:{message.strip().lower()}"
     return hashlib.sha256(raw.encode()).hexdigest()
+
+
+def clear_response_cache() -> int:
+    """Clear the in-memory response cache. Returns number of entries cleared."""
+    n = len(_response_cache)
+    _response_cache.clear()
+    return n
 
 
 # --- SSE Streaming chat endpoint ---
