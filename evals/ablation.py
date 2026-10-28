@@ -15,6 +15,7 @@ import hashlib
 import json
 import logging
 import random
+import signal
 import subprocess
 import time
 from datetime import datetime
@@ -29,6 +30,7 @@ logger = logging.getLogger(__name__)
 ABLATION_SET = Path("evals/sets/ablation.jsonl")
 SUITES_DIR = Path("evals/suites")
 REPORTS_DIR = Path("evals/reports")
+PROGRESS_DIR = REPORTS_DIR / "progress"
 IMPROVEMENT_LOG = Path("docs/improvement-log.md")
 SEED = 42
 
@@ -159,9 +161,18 @@ ITERATIONS = {
         "injection_scanner": True,
         "output_scanner": True,
     },
+    "v5": {
+        "note": "v4 + grounding checker + value-leak fix",
+        "policy_checks": True,
+        "rls": True,
+        "retrieval_prefilter": True,
+        "aggregation_guard": True,
+        "injection_scanner": True,
+        "output_scanner": True,
+    },
 }
 
-ITERATION_ORDER = ["v0", "v1", "v2", "v3", "v4"]
+ITERATION_ORDER = ["v0", "v1", "v2", "v3", "v4", "v5"]
 
 # ── Attack type tags used for leak breakdown ────────────────────
 
@@ -315,13 +326,56 @@ def _configure_protections(iteration: str) -> None:
     logger.info("  Enabled: %s", enabled or ["(none)"])
 
 
+class _CaseTimeoutError(Exception):
+    pass
+
+
+def _timeout_handler(signum, frame):
+    raise _CaseTimeoutError()
+
+
+def _load_progress(iteration: str) -> list[dict]:
+    """Load completed case results from the progress file."""
+    progress_file = PROGRESS_DIR / f"{iteration}.jsonl"
+    if not progress_file.exists():
+        return []
+    results = []
+    with open(progress_file) as f:
+        for line in f:
+            if line.strip():
+                results.append(json.loads(line))
+    logger.info("Resuming %s: %d cases already completed", iteration, len(results))
+    return results
+
+
+def _append_progress(iteration: str, case_result: dict) -> None:
+    """Append a completed case to the progress file."""
+    PROGRESS_DIR.mkdir(parents=True, exist_ok=True)
+    progress_file = PROGRESS_DIR / f"{iteration}.jsonl"
+    with open(progress_file, "a") as f:
+        f.write(json.dumps(case_result, default=str) + "\n")
+
+
+def _clear_progress(iteration: str) -> None:
+    """Remove the progress file after a successful iteration."""
+    progress_file = PROGRESS_DIR / f"{iteration}.jsonl"
+    if progress_file.exists():
+        progress_file.unlink()
+
+
 def run_iteration(
     iteration: str,
     cases: list[dict],
     commit_hash: str = "",
     data_checksum: str = "",
+    case_timeout: int = 0,
 ) -> dict[str, Any]:
-    """Run a single ablation iteration and return results."""
+    """Run a single ablation iteration and return results.
+
+    Args:
+        case_timeout: Per-case timeout in seconds (0 = no limit).
+            Timed-out cases are marked as FAIL with timed_out=True.
+    """
     from company.llm import get_call_count, reset_call_count
     from evals.runner import _run_case
 
@@ -329,32 +383,83 @@ def run_iteration(
     reset_call_count()
     start = time.time()
 
-    results = []
-    for i, case in enumerate(cases, 1):
-        # Integrity check every 50 cases
-        if commit_hash and i % 50 == 0:
-            _check_integrity(commit_hash, data_checksum)
+    # Resume from progress file if available
+    prior_results = _load_progress(iteration)
+    completed_ids = {r.get("_ablation_id") or r["case_id"] for r in prior_results}
+    results = list(prior_results)
 
-        scoring = case.get("_scoring", "canary_match")
-        case_start = get_call_count()
-        case_result = _run_case(case, scoring)
-        case_result["llm_calls"] = get_call_count() - case_start
-        case_result["_ablation_id"] = case.get("_ablation_id", "")
-        case_result["_suite"] = case.get("_suite", "")
-        results.append(case_result)
+    # Install timeout handler if requested
+    old_handler = None
+    if case_timeout > 0:
+        old_handler = signal.getsignal(signal.SIGALRM)
+        signal.signal(signal.SIGALRM, _timeout_handler)
 
-        status = "PASS" if case_result.get("pass") else "FAIL"
-        elapsed = time.time() - start
-        eta = (elapsed / i) * (len(cases) - i)
-        logger.info(
-            "  [%d/%d] %s %s (%.0fs elapsed, ETA %.0fs)",
-            i,
-            len(cases),
-            case_result.get("_ablation_id", case_result["case_id"]),
-            status,
-            elapsed,
-            eta,
-        )
+    try:
+        for i, case in enumerate(cases, 1):
+            ablation_id = case.get("_ablation_id", "")
+            case_id = ablation_id or case.get("id", f"case-{i}")
+            if case_id in completed_ids:
+                continue  # Already completed in a prior run
+
+            # Integrity check every 50 cases
+            if commit_hash and i % 50 == 0:
+                _check_integrity(commit_hash, data_checksum)
+
+            scoring = case.get("_scoring", "canary_match")
+            case_start = get_call_count()
+
+            if case_timeout > 0:
+                signal.alarm(case_timeout)
+            try:
+                case_result = _run_case(case, scoring)
+            except _CaseTimeoutError:
+                logger.warning("  [%d/%d] %s TIMEOUT (%ds)", i, len(cases), case_id, case_timeout)
+                case_result = {
+                    "case_id": case.get("id", "unknown"),
+                    "pass": False,
+                    "score": 0.0,
+                    "timed_out": True,
+                    "message": case.get("message", ""),
+                    "user_role": case.get("user", {}).get("role", "unknown"),
+                    "user_id": case.get("user", {}).get("employee_id", 0),
+                    "tags": case.get("tags", []),
+                    "agent_response": "[Case timed out]",
+                    "agent_tools": [],
+                    "tool_call_count": 0,
+                    "called_tools": False,
+                    "blocked": False,
+                }
+            finally:
+                if case_timeout > 0:
+                    signal.alarm(0)
+
+            case_result["llm_calls"] = get_call_count() - case_start
+            case_result["_ablation_id"] = ablation_id
+            case_result["_suite"] = case.get("_suite", "")
+            results.append(case_result)
+
+            # Save progress incrementally
+            _append_progress(iteration, case_result)
+
+            status = "PASS" if case_result.get("pass") else ("TIMEOUT" if case_result.get("timed_out") else "FAIL")
+            elapsed = time.time() - start
+            completed = len(results)
+            eta = (elapsed / max(completed - len(prior_results), 1)) * (len(cases) - completed)
+            logger.info(
+                "  [%d/%d] %s %s (%.0fs elapsed, ETA %.0fs)",
+                completed,
+                len(cases),
+                case_id,
+                status,
+                elapsed,
+                eta,
+            )
+    finally:
+        if old_handler is not None:
+            signal.signal(signal.SIGALRM, old_handler)
+
+    # Iteration complete — clean up progress file
+    _clear_progress(iteration)
 
     elapsed = time.time() - start
     total_calls = get_call_count()
@@ -543,8 +648,9 @@ def print_results_table(all_iterations: dict[str, dict]) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Ablation study runner")
     parser.add_argument("--generate", action="store_true", help="Generate the fixed ablation set")
-    parser.add_argument("--run", default="", help="Run iteration(s): v0, v1, ..., v4, or 'all'")
+    parser.add_argument("--run", default="", help="Run iteration(s): v0, v1, ..., v5, or 'all'")
     parser.add_argument("--report", default="", help="Print results from a JSON report file")
+    parser.add_argument("--case-timeout", type=int, default=0, help="Per-case timeout in seconds (0=unlimited)")
     args = parser.parse_args()
 
     if args.generate:
@@ -627,7 +733,7 @@ def main() -> None:
             _check_integrity(run_commit, run_checksum)
 
             logger.info("-" * 60)
-            result = run_iteration(v, cases, run_commit, run_checksum)
+            result = run_iteration(v, cases, run_commit, run_checksum, case_timeout=args.case_timeout)
             all_results[v] = result
 
             # Strip per-case results for the log (keep them in JSON)

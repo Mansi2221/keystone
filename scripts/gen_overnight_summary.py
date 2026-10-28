@@ -82,18 +82,33 @@ def main():
     parser.add_argument("--report", required=True, help="Rescored ablation JSON")
     parser.add_argument("--labels", help="Labels JSONL for kappa comparison")
     parser.add_argument("--original", help="Original (pre-rescore) ablation JSON for kappa before")
+    parser.add_argument("--incomplete", help="Comma-separated list of incomplete iterations (e.g. v3,v4)")
     args = parser.parse_args()
+
+    incomplete_set = set()
+    if args.incomplete:
+        incomplete_set = {v.strip() for v in args.incomplete.split(",")}
 
     with open(args.report) as f:
         data = json.load(f)
 
+    # Include all expected iterations v0-v5, even if not in data
+    all_expected = ["v0", "v1", "v2", "v3", "v4", "v5"]
     iterations = sorted(k for k in data if isinstance(data[k], dict) and "results" in data[k])
-    logger.info("Iterations: %s", iterations)
+    # Ensure incomplete iterations appear in the table too
+    for v in all_expected:
+        if v not in iterations and v in incomplete_set:
+            iterations.append(v)
+    iterations = sorted(set(iterations))
+    logger.info("Iterations: %s (incomplete: %s)", iterations, incomplete_set or "none")
 
     # Compute per-iteration stats
     stats = {}
     for it in iterations:
-        stats[it] = compute_iteration_stats(data[it]["results"])
+        if it in data and isinstance(data[it], dict) and "results" in data[it]:
+            stats[it] = compute_iteration_stats(data[it]["results"])
+        else:
+            stats[it] = None  # Incomplete — no data
 
     # Kappa
     kappa_before = None
@@ -121,13 +136,25 @@ def main():
             before_judge = [orig_lookup.get(cid, {}).get("pass", False) for cid in case_ids]
             kappa_before = _cohens_kappa(before_judge, human)
 
+    # Determine cases per iteration from first non-None stats
+    cases_count = 0
+    for s in stats.values():
+        if s is not None:
+            cases_count = s["total"]
+            break
+
+    incomplete_note = ""
+    if incomplete_set:
+        incomplete_note = f"\n**Incomplete:** {', '.join(sorted(incomplete_set))} *(failed after 2 retries)*"
+
     # Generate markdown
     lines = [
         "# Overnight Summary",
         "",
         f"**Generated:** {datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')}",
         f"**Iterations:** {', '.join(iterations)}",
-        f"**Cases per iteration:** {stats[iterations[0]]['total'] if iterations else 0}",
+        f"**Cases per iteration:** {cases_count}",
+        incomplete_note,
         "",
         "## Ablation Results",
         "",
@@ -137,10 +164,14 @@ def main():
 
     for it in iterations:
         s = stats[it]
+        if s is None or it in incomplete_set:
+            label = f"{it} ⚠️" if it in incomplete_set else it
+            lines.append(f"| {label} | *incomplete* | — | — | — | — | — |")
+            continue
+
         ts = s["by_suite"].get("task_success", {"total": 0, "passed": 0})
         orf = s["by_suite"].get("over_refusal", {"total": 0, "passed": 0})
         pl = s["by_suite"].get("permission_leakage", {"total": 0, "leaked": 0})
-        tc = s["by_suite"].get("tool_correctness", {"total": 0, "passed": 0})
 
         ts_rate = f"{ts['passed']}/{ts['total']}" if ts["total"] else "—"
         or_rate = f"{orf['passed']}/{orf['total']}" if orf["total"] else "—"
@@ -150,23 +181,25 @@ def main():
 
         lines.append(f"| {it} | {ts_rate} | {or_rate} | {canary_leaks} | {value_leaks} | {gf} | {s['avg_llm_calls']} |")
 
-    # Leak breakdown
+    # Leak breakdown (skip None/incomplete stats)
     all_leak_types = set()
     for s in stats.values():
-        all_leak_types |= set(s["leak_types"].keys())
+        if s is not None:
+            all_leak_types |= set(s["leak_types"].keys())
 
-    if all_leak_types:
+    complete_iters = [it for it in iterations if stats[it] is not None and it not in incomplete_set]
+    if all_leak_types and complete_iters:
         lines.extend(
             [
                 "",
                 "### Leak Breakdown by Type",
                 "",
-                "| Type | " + " | ".join(iterations) + " |",
-                "|------|" + "|".join("---" for _ in iterations) + "|",
+                "| Type | " + " | ".join(complete_iters) + " |",
+                "|------|" + "|".join("---" for _ in complete_iters) + "|",
             ]
         )
         for lt in sorted(all_leak_types):
-            vals = [str(stats[it]["leak_types"].get(lt, 0)) for it in iterations]
+            vals = [str(stats[it]["leak_types"].get(lt, 0)) for it in complete_iters]
             lines.append(f"| {lt} | " + " | ".join(vals) + " |")
 
     # Kappa section
