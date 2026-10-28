@@ -4,7 +4,7 @@ on:
   pull_request:
     branches: [main]
   push:
-    branches: [main]
+    branches: [main, finish]
 
 env:
   POSTGRES_USER: keystone
@@ -67,7 +67,8 @@ jobs:
 
       - name: Install Cerbos CLI
         run: |
-          curl -sL https://github.com/cerbos/cerbos/releases/latest/download/cerbos_Linux_x86_64.tar.gz | tar xz
+          CERBOS_VERSION=$(curl -sI https://github.com/cerbos/cerbos/releases/latest | grep -i ^location: | sed 's|.*/v||;s/\r//')
+          curl -sL "https://github.com/cerbos/cerbos/releases/download/v${CERBOS_VERSION}/cerbos_${CERBOS_VERSION}_Linux_x86_64.tar.gz" | tar xz
 
       - name: Run Cerbos policy tests
         run: ./cerbos compile policy/ --tests policy/tests/
@@ -102,6 +103,10 @@ jobs:
 
       - name: Install dependencies
         run: uv sync --extra dev
+
+      - name: Enable pgvector extension
+        run: |
+          PGPASSWORD=keystone_dev_password psql -h localhost -U keystone -d keystone -c "CREATE EXTENSION IF NOT EXISTS vector;"
 
       - name: Seed database
         run: uv run python -m company.seed
