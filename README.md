@@ -8,7 +8,7 @@ Keystone demonstrates that an LLM-powered agent can be made safe and auditable b
 
 ```mermaid
 graph TB
-    User[Streamlit UI] --> Gateway[FastAPI Gateway]
+    User[React UI] --> Gateway[FastAPI Gateway]
     Gateway --> JWT[JWT Auth]
     JWT --> HR_Resolve[Identity Resolution<br/>from HR System]
     HR_Resolve --> Principal[Principal<br/>user_id, role, groups]
@@ -67,14 +67,17 @@ A fictional 120-person logistics company with 5 departments (Sales, Operations, 
 
 **Deliberate challenges**: 20 duplicate docs, 15 stale versions, 16 hidden prompt injections, inconsistent name formats.
 
-## Eval Results
+## Ablation Study
 
-| Suite | Cases | Pass Rate | Leak Rate |
-|-------|-------|-----------|-----------|
-| Task Success | 21+ | Measured per run | — |
-| Permission Leakage | 28+ | — | 0% target |
-| Tool Correctness | 10+ | Measured per run | — |
-| Over-Refusal | 15+ | Measured per run | — |
+Each iteration enables one cumulative protection layer. 210 cases per iteration (150 leak, 40 task, 20 over-refusal):
+
+| Iter | Protections | Leak Rate | Exposure Rate | Task Success | Over-Refusal Pass |
+|------|-------------|-----------|---------------|--------------|-------------------|
+| v0 | System prompt only | {{v0_leak_rate}} | {{v0_exposure_rate}} | {{v0_task_rate}} | {{v0_or_rate}} |
+| v1 | + Policy checks | {{v1_leak_rate}} | {{v1_exposure_rate}} | {{v1_task_rate}} | {{v1_or_rate}} |
+| v2 | + RLS | {{v2_leak_rate}} | {{v2_exposure_rate}} | {{v2_task_rate}} | {{v2_or_rate}} |
+| v3 | + Aggregation guard | {{v3_leak_rate}} | {{v3_exposure_rate}} | {{v3_task_rate}} | {{v3_or_rate}} |
+| v4 | + Output scanner | {{v4_leak_rate}} | {{v4_exposure_rate}} | {{v4_task_rate}} | {{v4_or_rate}} |
 
 ## Quickstart
 
@@ -123,7 +126,7 @@ keystone/
   policy/         # Cerbos policies and policy tests
   api/            # FastAPI gateway, JWT auth, audit log
   evals/          # 4 eval suites, runner, LLM judge, calibration
-  ui/             # Streamlit chat with user switcher
+  ui-web/         # React + Vite chat UI with user switcher and compare mode
   docs/           # Architecture, deployment memo, improvement log
   tests/          # 111+ unit and integration tests
 ```
