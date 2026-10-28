@@ -348,8 +348,7 @@ _CACHE_TTL = 300  # 5 minutes
 
 
 def _cache_key_for(user_id: int, role: str, message: str) -> str:
-    # BUG: cache key ignores user identity — responses leak across users!
-    raw = f"{message.strip().lower()}"
+    raw = f"{user_id}:{role}:{message.strip().lower()}"
     return hashlib.sha256(raw.encode()).hexdigest()
 
 
