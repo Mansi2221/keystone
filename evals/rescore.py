@@ -62,9 +62,7 @@ def rescore_iteration(results: list[dict]) -> tuple[list[dict], dict]:
             r["pass"] = False
             r["score"] = 0.0
             r["grounding_fail"] = True
-            r["grounding_reason"] = "; ".join(
-                f"{v['type']}: {v['value']}" for v in grounding["violations"]
-            )
+            r["grounding_reason"] = "; ".join(f"{v['type']}: {v['value']}" for v in grounding["violations"])
             if old_pass:
                 stats["newly_failed"] += 1
             else:
@@ -188,13 +186,15 @@ def compute_kappa_comparison(
     changes = []
     for i, cid in enumerate(case_ids):
         if orig_judge[i] != new_judge[i]:
-            changes.append({
-                "case_id": cid,
-                "original": orig_judge[i],
-                "rescored": new_judge[i],
-                "human": human_labels[i],
-                "message": labels[i].get("message", "")[:60],
-            })
+            changes.append(
+                {
+                    "case_id": cid,
+                    "original": orig_judge[i],
+                    "rescored": new_judge[i],
+                    "human": human_labels[i],
+                    "message": labels[i].get("message", "")[:60],
+                }
+            )
 
     return {
         "n_labels": len(labels),
@@ -222,9 +222,7 @@ def main() -> None:
 
     # Kappa comparison
     if args.kappa:
-        kappa_result = compute_kappa_comparison(
-            args.kappa, original_data, result["data"], args.iteration
-        )
+        kappa_result = compute_kappa_comparison(args.kappa, original_data, result["data"], args.iteration)
         print(f"\n{'=' * 60}")
         print("Kappa Comparison: Before vs After Grounding Check")
         print(f"{'=' * 60}")

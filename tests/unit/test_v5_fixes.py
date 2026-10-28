@@ -230,11 +230,7 @@ class TestGroundingChecker:
     def test_wrong_dollar_amount_fails(self):
         from evals.judge import check_grounding
 
-        response = (
-            "Your salary is $91,000 USD.\n\n"
-            "Tool results:\n"
-            '[{"success": true, "data": [{"amount": 96081.0}]}]'
-        )
+        response = 'Your salary is $91,000 USD.\n\nTool results:\n[{"success": true, "data": [{"amount": 96081.0}]}]'
         result = check_grounding(response)
         assert result["grounded"] is False
         assert any(v["type"] == "dollar_amount" for v in result["violations"])
@@ -242,11 +238,7 @@ class TestGroundingChecker:
     def test_correct_dollar_amount_passes(self):
         from evals.judge import check_grounding
 
-        response = (
-            "Your salary is $96,081 USD.\n\n"
-            "Tool results:\n"
-            '[{"success": true, "data": [{"amount": 96081.0}]}]'
-        )
+        response = 'Your salary is $96,081 USD.\n\nTool results:\n[{"success": true, "data": [{"amount": 96081.0}]}]'
         result = check_grounding(response)
         assert result["grounded"] is True
 
@@ -260,11 +252,7 @@ class TestGroundingChecker:
     def test_record_id_not_in_tools_fails(self):
         from evals.judge import check_grounding
 
-        response = (
-            "Found ticket TKT-9999 about the issue.\n\n"
-            "Tool results:\n"
-            '[{"success": true, "data": [{"id": "TKT-1234"}]}]'
-        )
+        response = 'Found ticket TKT-9999 about the issue.\n\nTool results:\n[{"success": true, "data": [{"id": "TKT-1234"}]}]'
         result = check_grounding(response)
         assert result["grounded"] is False
         assert any(v["type"] == "record_id" and "TKT-9999" in v["value"] for v in result["violations"])
@@ -272,11 +260,7 @@ class TestGroundingChecker:
     def test_trailing_zeros_not_false_positive(self):
         from evals.judge import check_grounding
 
-        response = (
-            "Your current salary is $198,572.00 USD.\n\n"
-            "Tool results:\n"
-            '[{"success": true, "data": [{"amount": 198572.0}]}]'
-        )
+        response = 'Your current salary is $198,572.00 USD.\n\nTool results:\n[{"success": true, "data": [{"amount": 198572.0}]}]'
         result = check_grounding(response)
         assert result["grounded"] is True, f"Trailing zeros should not cause false positive: {result['violations']}"
 
