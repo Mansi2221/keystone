@@ -1,6 +1,6 @@
 ---
 name: Document access tests
-description: Verify document permissions including board minutes
+description: Verify document permissions including board minutes for read, search, and get actions
 resources:
   board_minutes: &board_minutes
     kind: document
@@ -59,7 +59,26 @@ principals:
     attr:
       groups: ["finance", "finance_all", "finance_read", "all"]
 
+  manager: &manager
+    id: "200"
+    roles: ["manager"]
+    attr:
+      groups: ["operations", "operations_all", "leadership", "all"]
+
+  hr_partner: &hr_partner
+    id: "80"
+    roles: ["hr_partner"]
+    attr:
+      groups: ["hr", "hr_all", "hr_full_access", "all"]
+
+  sales_rep: &sales_rep
+    id: "9"
+    roles: ["sales_rep"]
+    attr:
+      groups: ["sales", "sales_all", "all"]
+
 tests:
+  # === read action ===
   - name: Executive can read board minutes
     input:
       principals: ["executive"]
@@ -133,3 +152,157 @@ tests:
         resource: finance_contract
         actions:
           read: EFFECT_DENY
+
+  # === search action (must match read) ===
+  - name: Executive can search board minutes
+    input:
+      principals: ["executive"]
+      resources: ["board_minutes"]
+      actions: ["search"]
+    expected:
+      - principal: executive
+        resource: board_minutes
+        actions:
+          search: EFFECT_ALLOW
+
+  - name: IC cannot search board minutes
+    input:
+      principals: ["eng_ic"]
+      resources: ["board_minutes"]
+      actions: ["search"]
+    expected:
+      - principal: eng_ic
+        resource: board_minutes
+        actions:
+          search: EFFECT_DENY
+
+  - name: Contractor cannot search any document
+    input:
+      principals: ["contractor"]
+      resources: ["team_wiki", "finance_contract"]
+      actions: ["search"]
+    expected:
+      - principal: contractor
+        resource: team_wiki
+        actions:
+          search: EFFECT_DENY
+      - principal: contractor
+        resource: finance_contract
+        actions:
+          search: EFFECT_DENY
+
+  - name: Manager can search docs via group overlap
+    input:
+      principals: ["manager"]
+      resources: ["finance_contract"]
+      actions: ["search"]
+    expected:
+      - principal: manager
+        resource: finance_contract
+        actions:
+          search: EFFECT_ALLOW
+
+  # === get action (must match read) ===
+  - name: Executive can get board minutes
+    input:
+      principals: ["executive"]
+      resources: ["board_minutes"]
+      actions: ["get"]
+    expected:
+      - principal: executive
+        resource: board_minutes
+        actions:
+          get: EFFECT_ALLOW
+
+  - name: IC cannot get board minutes
+    input:
+      principals: ["eng_ic"]
+      resources: ["board_minutes"]
+      actions: ["get"]
+    expected:
+      - principal: eng_ic
+        resource: board_minutes
+        actions:
+          get: EFFECT_DENY
+
+  - name: Contractor cannot get any document
+    input:
+      principals: ["contractor"]
+      resources: ["team_wiki", "public_policy"]
+      actions: ["get"]
+    expected:
+      - principal: contractor
+        resource: team_wiki
+        actions:
+          get: EFFECT_DENY
+      - principal: contractor
+        resource: public_policy
+        actions:
+          get: EFFECT_DENY
+
+  - name: Finance analyst can get finance contract
+    input:
+      principals: ["finance_analyst"]
+      resources: ["finance_contract"]
+      actions: ["get"]
+    expected:
+      - principal: finance_analyst
+        resource: finance_contract
+        actions:
+          get: EFFECT_ALLOW
+
+  # === Cross-role × action coverage ===
+  - name: HR partner can search and get via group overlap
+    input:
+      principals: ["hr_partner"]
+      resources: ["public_policy"]
+      actions: ["read", "search", "get"]
+    expected:
+      - principal: hr_partner
+        resource: public_policy
+        actions:
+          read: EFFECT_ALLOW
+          search: EFFECT_ALLOW
+          get: EFFECT_ALLOW
+
+  - name: Sales rep can search docs via group overlap
+    input:
+      principals: ["sales_rep"]
+      resources: ["public_policy"]
+      actions: ["read", "search", "get"]
+    expected:
+      - principal: sales_rep
+        resource: public_policy
+        actions:
+          read: EFFECT_ALLOW
+          search: EFFECT_ALLOW
+          get: EFFECT_ALLOW
+
+  - name: Executive all actions on all documents
+    input:
+      principals: ["executive"]
+      resources: ["board_minutes", "team_wiki", "public_policy", "finance_contract"]
+      actions: ["read", "search", "get"]
+    expected:
+      - principal: executive
+        resource: board_minutes
+        actions: { read: EFFECT_ALLOW, search: EFFECT_ALLOW, get: EFFECT_ALLOW }
+      - principal: executive
+        resource: team_wiki
+        actions: { read: EFFECT_ALLOW, search: EFFECT_ALLOW, get: EFFECT_ALLOW }
+      - principal: executive
+        resource: public_policy
+        actions: { read: EFFECT_ALLOW, search: EFFECT_ALLOW, get: EFFECT_ALLOW }
+      - principal: executive
+        resource: finance_contract
+        actions: { read: EFFECT_ALLOW, search: EFFECT_ALLOW, get: EFFECT_ALLOW }
+
+  - name: Document owner can read/search/get own doc
+    input:
+      principals: ["eng_ic"]
+      resources: ["team_wiki"]
+      actions: ["read", "search", "get"]
+    expected:
+      - principal: eng_ic
+        resource: team_wiki
+        actions: { read: EFFECT_ALLOW, search: EFFECT_ALLOW, get: EFFECT_ALLOW }

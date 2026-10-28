@@ -1,0 +1,150 @@
+---
+name: Chat channel access tests
+description: Verify chat channel read/write permissions across all roles
+resources:
+  public_channel: &public_channel
+    kind: chat_channel
+    id: "chan_001"
+    attr:
+      is_private: false
+      member_ids: ["200", "300"]
+
+  private_member: &private_member
+    kind: chat_channel
+    id: "chan_002"
+    attr:
+      is_private: true
+      member_ids: ["100", "200"]
+
+  private_nonmember: &private_nonmember
+    kind: chat_channel
+    id: "chan_003"
+    attr:
+      is_private: true
+      member_ids: ["200", "300"]
+
+principals:
+  ic: &ic
+    id: "100"
+    roles: ["individual_contributor"]
+    attr: {}
+
+  manager: &manager
+    id: "100"
+    roles: ["manager"]
+    attr: {}
+
+  hr_partner: &hr_partner
+    id: "100"
+    roles: ["hr_partner"]
+    attr: {}
+
+  finance_analyst: &finance_analyst
+    id: "100"
+    roles: ["finance_analyst"]
+    attr: {}
+
+  sales_rep: &sales_rep
+    id: "100"
+    roles: ["sales_rep"]
+    attr: {}
+
+  executive: &executive
+    id: "100"
+    roles: ["executive"]
+    attr: {}
+
+  contractor: &contractor
+    id: "100"
+    roles: ["contractor"]
+    attr: {}
+
+tests:
+  # Public channel: all roles allowed
+  - name: All roles can read+write public channels
+    input:
+      principals: ["ic", "manager", "hr_partner", "finance_analyst", "sales_rep", "executive", "contractor"]
+      resources: ["public_channel"]
+      actions: ["read", "write"]
+    expected:
+      - principal: ic
+        resource: public_channel
+        actions: { read: EFFECT_ALLOW, write: EFFECT_ALLOW }
+      - principal: manager
+        resource: public_channel
+        actions: { read: EFFECT_ALLOW, write: EFFECT_ALLOW }
+      - principal: hr_partner
+        resource: public_channel
+        actions: { read: EFFECT_ALLOW, write: EFFECT_ALLOW }
+      - principal: finance_analyst
+        resource: public_channel
+        actions: { read: EFFECT_ALLOW, write: EFFECT_ALLOW }
+      - principal: sales_rep
+        resource: public_channel
+        actions: { read: EFFECT_ALLOW, write: EFFECT_ALLOW }
+      - principal: executive
+        resource: public_channel
+        actions: { read: EFFECT_ALLOW, write: EFFECT_ALLOW }
+      - principal: contractor
+        resource: public_channel
+        actions: { read: EFFECT_ALLOW, write: EFFECT_ALLOW }
+
+  # Private channel: members allowed (non-contractors)
+  - name: Non-contractor members can read+write private channels
+    input:
+      principals: ["ic", "manager", "hr_partner", "finance_analyst", "sales_rep", "executive"]
+      resources: ["private_member"]
+      actions: ["read", "write"]
+    expected:
+      - principal: ic
+        resource: private_member
+        actions: { read: EFFECT_ALLOW, write: EFFECT_ALLOW }
+      - principal: manager
+        resource: private_member
+        actions: { read: EFFECT_ALLOW, write: EFFECT_ALLOW }
+      - principal: hr_partner
+        resource: private_member
+        actions: { read: EFFECT_ALLOW, write: EFFECT_ALLOW }
+      - principal: finance_analyst
+        resource: private_member
+        actions: { read: EFFECT_ALLOW, write: EFFECT_ALLOW }
+      - principal: sales_rep
+        resource: private_member
+        actions: { read: EFFECT_ALLOW, write: EFFECT_ALLOW }
+      - principal: executive
+        resource: private_member
+        actions: { read: EFFECT_ALLOW, write: EFFECT_ALLOW }
+
+  # Private channel: non-members denied
+  - name: Non-members denied from private channels
+    input:
+      principals: ["ic", "manager", "hr_partner", "executive", "contractor"]
+      resources: ["private_nonmember"]
+      actions: ["read", "write"]
+    expected:
+      - principal: ic
+        resource: private_nonmember
+        actions: { read: EFFECT_DENY, write: EFFECT_DENY }
+      - principal: manager
+        resource: private_nonmember
+        actions: { read: EFFECT_DENY, write: EFFECT_DENY }
+      - principal: hr_partner
+        resource: private_nonmember
+        actions: { read: EFFECT_DENY, write: EFFECT_DENY }
+      - principal: executive
+        resource: private_nonmember
+        actions: { read: EFFECT_DENY, write: EFFECT_DENY }
+      - principal: contractor
+        resource: private_nonmember
+        actions: { read: EFFECT_DENY, write: EFFECT_DENY }
+
+  # Contractor denied from private even as member
+  - name: Contractor denied from private channel even as member
+    input:
+      principals: ["contractor"]
+      resources: ["private_member"]
+      actions: ["read", "write"]
+    expected:
+      - principal: contractor
+        resource: private_member
+        actions: { read: EFFECT_DENY, write: EFFECT_DENY }

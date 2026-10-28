@@ -1,0 +1,236 @@
+---
+name: Ticket access tests
+description: Verify ticket read/update/comment permissions across all roles
+resources:
+  own_ticket: &own_ticket
+    kind: ticket
+    id: "tkt_001"
+    attr:
+      owner_id: "100"
+      assignee_id: "200"
+      team: "engineering"
+      category: "bug"
+
+  assigned_ticket: &assigned_ticket
+    kind: ticket
+    id: "tkt_002"
+    attr:
+      owner_id: "200"
+      assignee_id: "100"
+      team: "engineering"
+      category: "feature"
+
+  team_ticket: &team_ticket
+    kind: ticket
+    id: "tkt_003"
+    attr:
+      owner_id: "300"
+      assignee_id: "400"
+      team: "engineering"
+      category: "ops"
+
+  other_ticket: &other_ticket
+    kind: ticket
+    id: "tkt_004"
+    attr:
+      owner_id: "300"
+      assignee_id: "400"
+      team: "sales"
+      category: "billing"
+
+  hr_ticket: &hr_ticket
+    kind: ticket
+    id: "tkt_005"
+    attr:
+      owner_id: "300"
+      assignee_id: "400"
+      team: "hr"
+      category: "hr_complaint"
+
+principals:
+  ic: &ic
+    id: "100"
+    roles: ["individual_contributor"]
+    attr:
+      groups: ["engineering", "engineering_all"]
+
+  manager: &manager
+    id: "100"
+    roles: ["manager"]
+    attr:
+      groups: ["engineering", "engineering_all", "leadership"]
+
+  hr_partner: &hr_partner
+    id: "100"
+    roles: ["hr_partner"]
+    attr:
+      groups: ["hr", "hr_all"]
+
+  executive: &executive
+    id: "1"
+    roles: ["executive"]
+    attr:
+      groups: ["leadership", "board_access"]
+
+  contractor: &contractor
+    id: "100"
+    roles: ["contractor"]
+    attr:
+      groups: ["engineering", "engineering_all"]
+
+  sales_rep: &sales_rep
+    id: "100"
+    roles: ["sales_rep"]
+    attr:
+      groups: ["sales", "sales_all"]
+
+tests:
+  # Owner can read+update own ticket
+  - name: Owner can read and update own ticket (all roles including contractor)
+    input:
+      principals: ["ic", "manager", "contractor"]
+      resources: ["own_ticket"]
+      actions: ["read", "update"]
+    expected:
+      - principal: ic
+        resource: own_ticket
+        actions: { read: EFFECT_ALLOW, update: EFFECT_ALLOW }
+      - principal: manager
+        resource: own_ticket
+        actions: { read: EFFECT_ALLOW, update: EFFECT_ALLOW }
+      - principal: contractor
+        resource: own_ticket
+        actions: { read: EFFECT_ALLOW, update: EFFECT_ALLOW }
+
+  # Assignee can read+update
+  - name: Assignee can read and update assigned ticket
+    input:
+      principals: ["ic", "contractor"]
+      resources: ["assigned_ticket"]
+      actions: ["read", "update"]
+    expected:
+      - principal: ic
+        resource: assigned_ticket
+        actions: { read: EFFECT_ALLOW, update: EFFECT_ALLOW }
+      - principal: contractor
+        resource: assigned_ticket
+        actions: { read: EFFECT_ALLOW, update: EFFECT_ALLOW }
+
+  # Team member can read team tickets
+  - name: IC can read team ticket via group membership
+    input:
+      principals: ["ic", "manager"]
+      resources: ["team_ticket"]
+      actions: ["read"]
+    expected:
+      - principal: ic
+        resource: team_ticket
+        actions: { read: EFFECT_ALLOW }
+      - principal: manager
+        resource: team_ticket
+        actions: { read: EFFECT_ALLOW }
+
+  # Non-team, non-owner cannot read or update
+  - name: IC cannot read ticket from another team
+    input:
+      principals: ["ic"]
+      resources: ["other_ticket"]
+      actions: ["read", "update"]
+    expected:
+      - principal: ic
+        resource: other_ticket
+        actions: { read: EFFECT_DENY, update: EFFECT_DENY }
+
+  # Sales rep can read team ticket in sales
+  - name: Sales rep can read sales team ticket
+    input:
+      principals: ["sales_rep"]
+      resources: ["other_ticket"]
+      actions: ["read"]
+    expected:
+      - principal: sales_rep
+        resource: other_ticket
+        actions: { read: EFFECT_ALLOW }
+
+  # HR partner can read hr_complaint, it, ops tickets
+  - name: HR partner can read HR complaint ticket
+    input:
+      principals: ["hr_partner"]
+      resources: ["hr_ticket"]
+      actions: ["read"]
+    expected:
+      - principal: hr_partner
+        resource: hr_ticket
+        actions: { read: EFFECT_ALLOW }
+
+  - name: HR partner cannot read billing ticket
+    input:
+      principals: ["hr_partner"]
+      resources: ["other_ticket"]
+      actions: ["read"]
+    expected:
+      - principal: hr_partner
+        resource: other_ticket
+        actions: { read: EFFECT_DENY }
+
+  # Executive can read and update any ticket
+  - name: Executive can read and update all tickets
+    input:
+      principals: ["executive"]
+      resources: ["own_ticket", "other_ticket", "hr_ticket"]
+      actions: ["read", "update"]
+    expected:
+      - principal: executive
+        resource: own_ticket
+        actions: { read: EFFECT_ALLOW, update: EFFECT_ALLOW }
+      - principal: executive
+        resource: other_ticket
+        actions: { read: EFFECT_ALLOW, update: EFFECT_ALLOW }
+      - principal: executive
+        resource: hr_ticket
+        actions: { read: EFFECT_ALLOW, update: EFFECT_ALLOW }
+
+  # Comment: owner/assignee/team can comment
+  - name: Owner can comment on own ticket
+    input:
+      principals: ["ic"]
+      resources: ["own_ticket"]
+      actions: ["comment"]
+    expected:
+      - principal: ic
+        resource: own_ticket
+        actions: { comment: EFFECT_ALLOW }
+
+  - name: Team member can comment on team ticket
+    input:
+      principals: ["ic", "manager"]
+      resources: ["team_ticket"]
+      actions: ["comment"]
+    expected:
+      - principal: ic
+        resource: team_ticket
+        actions: { comment: EFFECT_ALLOW }
+      - principal: manager
+        resource: team_ticket
+        actions: { comment: EFFECT_ALLOW }
+
+  - name: Non-team non-owner cannot comment
+    input:
+      principals: ["ic"]
+      resources: ["other_ticket"]
+      actions: ["comment"]
+    expected:
+      - principal: ic
+        resource: other_ticket
+        actions: { comment: EFFECT_DENY }
+
+  # Contractor cannot comment (not in comment roles)
+  - name: Contractor cannot comment on any ticket
+    input:
+      principals: ["contractor"]
+      resources: ["team_ticket"]
+      actions: ["comment"]
+    expected:
+      - principal: contractor
+        resource: team_ticket
+        actions: { comment: EFFECT_DENY }

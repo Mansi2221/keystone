@@ -23,22 +23,83 @@ logger = logging.getLogger(__name__)
 
 security = HTTPBearer()
 
-# Demo users seeded for each role (populated at import time from DB, or hardcoded fallback)
-DEMO_USERS: dict[str, dict[str, Any]] = {
-    "ceo": {"employee_id": 1, "role": "executive", "description": "CEO"},
-    "vp_sales": {"employee_id": 2, "role": "executive", "description": "VP of Sales"},
-    "vp_ops": {"employee_id": 3, "role": "executive", "description": "VP of Operations"},
-    "cfo": {"employee_id": 4, "role": "executive", "description": "CFO"},
-    "vp_people": {"employee_id": 5, "role": "executive", "description": "VP of People"},
-    "cto": {"employee_id": 6, "role": "executive", "description": "CTO"},
-    "sales_manager": {"employee_id": 7, "role": "manager", "description": "Sales Manager"},
-    "ops_manager": {"employee_id": 8, "role": "manager", "description": "Operations Manager"},
-    "hr_partner": {"employee_id": 12, "role": "hr_partner", "description": "HR Business Partner"},
-    "finance_analyst": {"employee_id": 15, "role": "finance_analyst", "description": "Financial Analyst"},
-    "sales_rep": {"employee_id": 10, "role": "sales_rep", "description": "Account Executive"},
-    "engineer": {"employee_id": 20, "role": "individual_contributor", "description": "Software Engineer"},
-    "contractor": {"employee_id": 25, "role": "contractor", "description": "Contract Developer"},
-}
+# Demo users — lazily populated from DB on first access
+DEMO_USERS: dict[str, dict[str, Any]] = {}
+
+
+def get_demo_users() -> dict[str, dict[str, Any]]:
+    """Return DEMO_USERS, building from DB on first call."""
+    if not DEMO_USERS:
+        DEMO_USERS.update(_build_demo_users())
+    return DEMO_USERS
+
+
+def _build_demo_users() -> dict[str, dict[str, Any]]:
+    """Resolve demo users from the database so IDs always match seed data.
+
+    Falls back to hardcoded IDs only if the DB is unavailable.
+    """
+    role_specs = [
+        ("ceo", "executive", "CEO", None),
+        ("vp_sales", "executive", "VP of Sales", "Sales"),
+        ("vp_ops", "executive", "VP of Operations", "Operations"),
+        ("cfo", "executive", "CFO", "Finance"),
+        ("vp_people", "executive", "VP of People", "HR"),
+        ("cto", "executive", "CTO", "Engineering"),
+        ("sales_manager", "manager", None, "Sales"),
+        ("ops_manager", "manager", None, "Operations"),
+        ("hr_partner", "hr_partner", None, None),
+        ("finance_analyst", "finance_analyst", None, None),
+        ("sales_rep", "sales_rep", None, "Sales"),
+        ("engineer", "individual_contributor", None, "Engineering"),
+        ("contractor", "contractor", None, "Engineering"),
+    ]
+
+    try:
+        session = SessionLocal()
+        result: dict[str, dict[str, Any]] = {}
+        for key, role, title_hint, dept_hint in role_specs:
+            stmt = select(Employee).where(Employee.role == role)
+            if dept_hint:
+                stmt = stmt.join(Department, Employee.department_id == Department.id).where(
+                    Department.name == dept_hint
+                )
+            if title_hint:
+                stmt = stmt.where(Employee.title == title_hint)
+            stmt = stmt.order_by(Employee.id).limit(1)
+            emp = session.execute(stmt).scalar_one_or_none()
+            if emp:
+                dept = session.execute(
+                    select(Department).where(Department.id == emp.department_id)
+                ).scalar_one_or_none()
+                result[key] = {
+                    "employee_id": emp.id,
+                    "role": emp.role,
+                    "description": emp.title,
+                    "name": f"{emp.first_name} {emp.last_name}",
+                    "department": dept.name if dept else "Unknown",
+                }
+            else:
+                logger.warning("Demo user %s not found in DB (role=%s, dept=%s)", key, role, dept_hint)
+        session.close()
+        return result
+    except Exception:
+        logger.warning("Could not resolve demo users from DB, using hardcoded fallback")
+        return {
+            "ceo": {"employee_id": 1, "role": "executive", "description": "CEO"},
+            "vp_sales": {"employee_id": 2, "role": "executive", "description": "VP of Sales"},
+            "vp_ops": {"employee_id": 3, "role": "executive", "description": "VP of Operations"},
+            "cfo": {"employee_id": 4, "role": "executive", "description": "CFO"},
+            "vp_people": {"employee_id": 5, "role": "executive", "description": "VP of People"},
+            "cto": {"employee_id": 6, "role": "executive", "description": "CTO"},
+            "sales_manager": {"employee_id": 7, "role": "manager", "description": "Sales Manager"},
+            "ops_manager": {"employee_id": 28, "role": "manager", "description": "Operations Manager"},
+            "hr_partner": {"employee_id": 80, "role": "hr_partner", "description": "HR Business Partner"},
+            "finance_analyst": {"employee_id": 64, "role": "finance_analyst", "description": "Financial Analyst"},
+            "sales_rep": {"employee_id": 9, "role": "sales_rep", "description": "Account Executive"},
+            "engineer": {"employee_id": 93, "role": "individual_contributor", "description": "Software Engineer"},
+            "contractor": {"employee_id": 116, "role": "contractor", "description": "Contract Developer"},
+        }
 
 
 def create_access_token(employee_db_id: int, extra_claims: dict | None = None) -> str:
