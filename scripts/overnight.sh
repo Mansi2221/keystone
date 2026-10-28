@@ -91,44 +91,53 @@ wait_for_ablation() {
     return 0
 }
 
-# ─── Step (a2): Resume incomplete iterations with per-case timeout ───
-# Runs each of v0–v5 individually. The ablation runner's progress file
-# enables resume from the last completed case. If an iteration fails twice,
-# mark it incomplete and continue.
-resume_iterations() {
-    local all_iters="v0 v1 v2 v3 v4 v5"
-    for iter in $all_iters; do
-        log "Checking iteration $iter..."
+# Helper: run a single iteration with retry (up to 2 attempts)
+run_iteration_with_retry() {
+    local iter="$1"
+    log "Checking iteration $iter..."
 
-        # Try up to 2 times
-        local attempt
-        local success=false
-        for attempt in 1 2; do
-            log "  Attempt $attempt for $iter"
-            if python3 -m evals.ablation --run "$iter" --case-timeout "$CASE_TIMEOUT"; then
-                log "  $iter completed on attempt $attempt"
-                success=true
-                break
-            else
-                log "  $iter failed on attempt $attempt (exit $?)"
-                if [ "$attempt" -eq 1 ]; then
-                    log "  Retrying $iter..."
-                    sleep 5
-                fi
+    local attempt
+    local success=false
+    for attempt in 1 2; do
+        log "  Attempt $attempt for $iter"
+        if python3 -m evals.ablation --run "$iter" --case-timeout "$CASE_TIMEOUT"; then
+            log "  $iter completed on attempt $attempt"
+            success=true
+            break
+        else
+            log "  $iter failed on attempt $attempt (exit $?)"
+            if [ "$attempt" -eq 1 ]; then
+                log "  Retrying $iter..."
+                sleep 5
             fi
-        done
-
-        if [ "$success" = "false" ]; then
-            log "  $iter INCOMPLETE after 2 attempts"
-            incomplete_iterations+=("$iter")
         fi
     done
 
-    if [ ${#incomplete_iterations[@]} -gt 0 ]; then
-        log "Incomplete iterations: ${incomplete_iterations[*]}"
-    else
-        log "All iterations complete"
+    if [ "$success" = "false" ]; then
+        log "  $iter INCOMPLETE after 2 attempts"
+        incomplete_iterations+=("$iter")
+        return 1
     fi
+    return 0
+}
+
+# ─── Step (a2): Finish v0–v4 on their original commit ───
+# These iterations run WITHOUT the v5 fixes (grounding checker, value-leak fix),
+# matching the code they were originally started on.
+finish_v0_v4() {
+    for iter in v0 v1 v2 v3 v4; do
+        run_iteration_with_retry "$iter"
+    done
+
+    log "v0-v4 status: incomplete=[${incomplete_iterations[*]:-none}]"
+}
+
+# ─── Step (d): Run v5 on the merged commit (with all fixes) ───
+run_v5() {
+    local commit
+    commit=$(git rev-parse --short HEAD)
+    log "Running v5 on merged commit $commit (includes grounding checker + value-leak fix)"
+    run_iteration_with_retry "v5"
 }
 
 # ─── Step (b): Merge finish → main ───
@@ -199,7 +208,7 @@ commit_and_push() {
         incomplete_msg="Incomplete: ${incomplete_iterations[*]}"
     fi
 
-    git commit -m "overnight: rescore v0-v5, fixtures, summary
+    git commit -m "overnight: v0-v4 pre-merge, v5 post-merge, rescore, fixtures, summary
 
 Steps completed: ${step_ok[*]}
 Steps failed: ${step_fail[*]:-none}
@@ -219,19 +228,22 @@ log "Case timeout: ${CASE_TIMEOUT}s"
 log ""
 log "Step order:"
 log "  (a)  Wait for stuck ablation / kill if no progress"
-log "  (a2) Resume all iterations v0-v5 with ${CASE_TIMEOUT}s per-case timeout (retry once on failure)"
-log "  (b)  Merge finish → main"
-log "  (c)  Re-score all with user-relative leak scoring + grounding checker"
-log "  (d)  Record replay fixtures 7×4 + compare"
-log "  (e)  Regenerate overnight-summary.md"
-log "  (f)  Commit and push"
+log "  (b)  Finish v0–v4 on original commit (${CASE_TIMEOUT}s per-case timeout, retry once)"
+log "  (c)  Merge finish → main (brings in v5 fixes)"
+log "  (d)  Run v5 on merged commit (grounding checker + value-leak fix active)"
+log "  (e)  Re-score all with user-relative leak scoring + grounding checker"
+log "  (f)  Record replay fixtures 7×4 + compare"
+log "  (g)  Regenerate overnight-summary.md"
+log "  (h)  Commit and push"
 log ""
 
 run_step "wait-for-ablation" wait_for_ablation
 
-run_step "resume-iterations" resume_iterations || true
+run_step "finish-v0-v4" finish_v0_v4 || true
 
 run_step "merge-to-main" merge_to_main || true
+
+run_step "run-v5" run_v5 || true
 
 run_step "rescore-all" rescore_all || true
 
