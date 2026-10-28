@@ -69,12 +69,14 @@ def record_fixture(message: str, employee_id: int) -> dict:
     for tc in state.tool_calls:
         events.append({"type": "tool_start", "tool": tc.tool_name, "arguments": tc.arguments})
         if tc.result is not None:
-            events.append({
-                "type": "tool_result",
-                "tool": tc.tool_name,
-                "success": tc.result.get("success", False),
-                "data": tc.result.get("data"),
-            })
+            events.append(
+                {
+                    "type": "tool_result",
+                    "tool": tc.tool_name,
+                    "success": tc.result.get("success", False),
+                    "data": tc.result.get("data"),
+                }
+            )
 
     # Approval
     if state.needs_approval and state.pending_action:
@@ -83,10 +85,12 @@ def record_fixture(message: str, employee_id: int) -> dict:
 
     # Sources
     if state.sources:
-        events.append({
-            "type": "sources",
-            "sources": [{"type": s.source_type, "id": s.source_id, "title": s.title} for s in state.sources],
-        })
+        events.append(
+            {
+                "type": "sources",
+                "sources": [{"type": s.source_type, "id": s.source_id, "title": s.title} for s in state.sources],
+            }
+        )
 
     # Response or blocked
     if state.blocked:

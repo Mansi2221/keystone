@@ -147,9 +147,7 @@ def main():
         value_leaks = sum(v for k, v in s["leak_types"].items() if "_value" in k)
         gf = s["grounding_fails"]
 
-        lines.append(
-            f"| {it} | {ts_rate} | {or_rate} | {canary_leaks} | {value_leaks} | {gf} | {s['avg_llm_calls']} |"
-        )
+        lines.append(f"| {it} | {ts_rate} | {or_rate} | {canary_leaks} | {value_leaks} | {gf} | {s['avg_llm_calls']} |")
 
     # Leak breakdown
     all_leak_types = set()
@@ -157,13 +155,15 @@ def main():
         all_leak_types |= set(s["leak_types"].keys())
 
     if all_leak_types:
-        lines.extend([
-            "",
-            "### Leak Breakdown by Type",
-            "",
-            "| Type | " + " | ".join(iterations) + " |",
-            "|------|" + "|".join("---" for _ in iterations) + "|",
-        ])
+        lines.extend(
+            [
+                "",
+                "### Leak Breakdown by Type",
+                "",
+                "| Type | " + " | ".join(iterations) + " |",
+                "|------|" + "|".join("---" for _ in iterations) + "|",
+            ]
+        )
         for lt in sorted(all_leak_types):
             vals = [str(stats[it]["leak_types"].get(lt, 0)) for it in iterations]
             lines.append(f"| {lt} | " + " | ".join(vals) + " |")
@@ -174,27 +174,31 @@ def main():
         lines.append("| Metric | Before Grounding | After Grounding |")
         lines.append("|--------|-----------------|-----------------|")
         lines.append(f"| Kappa | {kappa_before:.3f} | {kappa_after:.3f} |")
-        lines.append(f"| Interpretation | {'Fair' if kappa_before < 0.41 else 'Moderate' if kappa_before < 0.61 else 'Substantial'} | {'Fair' if kappa_after < 0.41 else 'Moderate' if kappa_after < 0.61 else 'Substantial'} |")
+        lines.append(
+            f"| Interpretation | {'Fair' if kappa_before < 0.41 else 'Moderate' if kappa_before < 0.61 else 'Substantial'} | {'Fair' if kappa_after < 0.41 else 'Moderate' if kappa_after < 0.61 else 'Substantial'} |"
+        )
     elif kappa_after is not None:
         lines.append(f"- Kappa (rescored): **{kappa_after:.3f}**")
     else:
         lines.append("- No labels available for kappa computation")
 
     # Noise analysis
-    lines.extend([
-        "",
-        "## Statistical Significance",
-        "",
-        "With 210 cases per iteration and local Ollama inference (qwen2.5:7b),",
-        "differences smaller than ~3% in pass rates are within noise.",
-        "The grounding checker is deterministic and adds no variance.",
-        "",
-        "Key observations:",
-        "- Grounding check catches fabricated URLs, hallucinated IDs, and wrong dollar amounts",
-        "- Cannot catch semantic errors (e.g., reporting old salary as current)",
-        "- 6 additional failures per iteration from grounding violations (v0-v2)",
-        "",
-    ])
+    lines.extend(
+        [
+            "",
+            "## Statistical Significance",
+            "",
+            "With 210 cases per iteration and local Ollama inference (qwen2.5:7b),",
+            "differences smaller than ~3% in pass rates are within noise.",
+            "The grounding checker is deterministic and adds no variance.",
+            "",
+            "Key observations:",
+            "- Grounding check catches fabricated URLs, hallucinated IDs, and wrong dollar amounts",
+            "- Cannot catch semantic errors (e.g., reporting old salary as current)",
+            "- 6 additional failures per iteration from grounding violations (v0-v2)",
+            "",
+        ]
+    )
 
     out_path = Path("docs/overnight-summary.md")
     out_path.parent.mkdir(parents=True, exist_ok=True)
