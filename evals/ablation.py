@@ -11,9 +11,11 @@ Usage:
 """
 
 import argparse
+import hashlib
 import json
 import logging
 import random
+import subprocess
 import time
 from datetime import datetime
 from pathlib import Path
@@ -29,6 +31,71 @@ SUITES_DIR = Path("evals/suites")
 REPORTS_DIR = Path("evals/reports")
 IMPROVEMENT_LOG = Path("docs/improvement-log.md")
 SEED = 42
+
+# ── Code and data integrity ────────────────────────────────────
+
+# Files whose content affects ablation results.  If any of them change
+# mid-run, the results are invalid.
+INTEGRITY_FILES = sorted([
+    "agent/graph.py",
+    "agent/guards.py",
+    "agent/prompts.py",
+    "company/config.py",
+    "company/principal.py",
+    "company/rls.py",
+    "company/seed.py",
+    "mcp_servers/docs/server.py",
+    "mcp_servers/hr/server.py",
+    "mcp_servers/crm/server.py",
+    "mcp_servers/tickets/server.py",
+    "mcp_servers/chat/server.py",
+    "policy/resource_policies/document.yaml",
+    "policy/resource_policies/salary.yaml",
+    "policy/resource_policies/deal.yaml",
+    "policy/resource_policies/ticket.yaml",
+    "policy/resource_policies/chat.yaml",
+    "evals/sets/ablation.jsonl",
+])
+
+
+def _git_commit_hash() -> str:
+    """Return the short git commit hash of HEAD."""
+    try:
+        return subprocess.check_output(
+            ["git", "rev-parse", "--short", "HEAD"],
+            stderr=subprocess.DEVNULL, text=True,
+        ).strip()
+    except Exception:
+        return "unknown"
+
+
+def _data_checksum() -> str:
+    """SHA-256 over all INTEGRITY_FILES to detect mid-run changes."""
+    h = hashlib.sha256()
+    for rel in INTEGRITY_FILES:
+        p = Path(rel)
+        if p.exists():
+            h.update(rel.encode())
+            h.update(p.read_bytes())
+    return h.hexdigest()[:16]
+
+
+def _check_integrity(expected_commit: str, expected_checksum: str) -> None:
+    """Raise if code/data changed since the run started."""
+    current_commit = _git_commit_hash()
+    current_checksum = _data_checksum()
+    if current_commit != expected_commit:
+        raise RuntimeError(
+            f"Git commit changed during ablation: started on {expected_commit}, "
+            f"now on {current_commit}.  Results would be invalid — aborting."
+        )
+    if current_checksum != expected_checksum:
+        raise RuntimeError(
+            f"Code/data checksum changed during ablation: started with "
+            f"{expected_checksum}, now {current_checksum}.  Results would be "
+            f"invalid — aborting.  Changed files in: {INTEGRITY_FILES}"
+        )
+
 
 # ── Iteration definitions ───────────────────────────────────────
 # Each iteration enables a cumulative set of protections.
@@ -236,7 +303,12 @@ def _configure_protections(iteration: str) -> None:
     logger.info("  Enabled: %s", enabled or ["(none)"])
 
 
-def run_iteration(iteration: str, cases: list[dict]) -> dict[str, Any]:
+def run_iteration(
+    iteration: str,
+    cases: list[dict],
+    commit_hash: str = "",
+    data_checksum: str = "",
+) -> dict[str, Any]:
     """Run a single ablation iteration and return results."""
     from evals.runner import _run_case, _build_principal, _load_canary_registry
     from company.llm import get_call_count, reset_call_count
@@ -247,6 +319,10 @@ def run_iteration(iteration: str, cases: list[dict]) -> dict[str, Any]:
 
     results = []
     for i, case in enumerate(cases, 1):
+        # Integrity check every 50 cases
+        if commit_hash and i % 50 == 0:
+            _check_integrity(commit_hash, data_checksum)
+
         scoring = case.get("_scoring", "canary_match")
         case_start = get_call_count()
         case_result = _run_case(case, scoring)
@@ -297,6 +373,8 @@ def run_iteration(iteration: str, cases: list[dict]) -> dict[str, Any]:
     return {
         "iteration": iteration,
         "note": ITERATIONS[iteration]["note"],
+        "git_commit": commit_hash,
+        "data_checksum": data_checksum,
         "total_cases": len(results),
         "leaks": leaked_total,
         "exposed": exposed_total,
@@ -465,11 +543,18 @@ def main() -> None:
     if args.run:
         from company.llm import active_profile_info
         info = active_profile_info()
+
+        # Capture code-freeze snapshot
+        run_commit = _git_commit_hash()
+        run_checksum = _data_checksum()
+
         logger.info("=" * 60)
         logger.info("Ablation Study")
-        logger.info("  Profile: %s", info["profile"])
-        logger.info("  Agent:   %s", info["agent"])
-        logger.info("  Judge:   %s", info["judge"])
+        logger.info("  Profile:   %s", info["profile"])
+        logger.info("  Agent:     %s", info["agent"])
+        logger.info("  Judge:     %s", info["judge"])
+        logger.info("  Commit:    %s", run_commit)
+        logger.info("  Checksum:  %s", run_checksum)
         logger.info("=" * 60)
 
         cases = load_ablation_set()
@@ -488,6 +573,22 @@ def main() -> None:
                 with open(latest_json[-1]) as f:
                     all_results = json.load(f)
                 logger.info("Loaded previous results from %s", latest_json[-1])
+                # Reject results from a different commit/checksum
+                for prev_v, prev_r in list(all_results.items()):
+                    prev_commit = prev_r.get("git_commit", "")
+                    prev_cksum = prev_r.get("data_checksum", "")
+                    if prev_commit and prev_commit != run_commit:
+                        logger.warning(
+                            "Discarding %s: ran on commit %s, now on %s",
+                            prev_v, prev_commit, run_commit,
+                        )
+                        del all_results[prev_v]
+                    elif prev_cksum and prev_cksum != run_checksum:
+                        logger.warning(
+                            "Discarding %s: data checksum changed (%s -> %s)",
+                            prev_v, prev_cksum, run_checksum,
+                        )
+                        del all_results[prev_v]
             except Exception:
                 pass
 
@@ -499,8 +600,11 @@ def main() -> None:
                 logger.info("Skipping %s (already completed)", v)
                 continue
 
+            # Re-check integrity before each iteration
+            _check_integrity(run_commit, run_checksum)
+
             logger.info("-" * 60)
-            result = run_iteration(v, cases)
+            result = run_iteration(v, cases, run_commit, run_checksum)
             all_results[v] = result
 
             # Strip per-case results for the log (keep them in JSON)
