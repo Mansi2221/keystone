@@ -11,15 +11,14 @@ import hashlib
 import json
 import logging
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from starlette.responses import StreamingResponse
-
 from sqlalchemy import select as sa_select
+from starlette.responses import StreamingResponse
 
 from api.auth import (
     create_access_token,
@@ -55,6 +54,7 @@ app.add_middleware(
 
 
 # --- Auth endpoints ---
+
 
 class LoginRequest(BaseModel):
     username: str  # demo user key from DEMO_USERS
@@ -125,31 +125,36 @@ async def list_demo_users() -> list[dict]:
     for key, info in demo_users.items():
         try:
             p = resolve_principal(info["employee_id"])
-            users.append({
-                "key": key,
-                "employee_id": info["employee_id"],
-                "role": p.role,
-                "department": p.department,
-                "name": info.get("name", p.employee_id),
-                "title": info.get("description", p.role),
-                "description": info.get("description", key),
-                "groups": p.groups,
-            })
+            users.append(
+                {
+                    "key": key,
+                    "employee_id": info["employee_id"],
+                    "role": p.role,
+                    "department": p.department,
+                    "name": info.get("name", p.employee_id),
+                    "title": info.get("description", p.role),
+                    "description": info.get("description", key),
+                    "groups": p.groups,
+                }
+            )
         except Exception:
-            users.append({
-                "key": key,
-                "employee_id": info["employee_id"],
-                "role": info.get("role", "unknown"),
-                "department": info.get("department", "Unknown"),
-                "name": info.get("name", key),
-                "title": info.get("description", key),
-                "description": info.get("description", key),
-                "groups": [],
-            })
+            users.append(
+                {
+                    "key": key,
+                    "employee_id": info["employee_id"],
+                    "role": info.get("role", "unknown"),
+                    "department": info.get("department", "Unknown"),
+                    "name": info.get("name", key),
+                    "title": info.get("description", key),
+                    "description": info.get("description", key),
+                    "groups": [],
+                }
+            )
     return users
 
 
 # --- Tool endpoints ---
+
 
 @app.get("/tools")
 async def list_tools() -> list[dict]:
@@ -211,6 +216,7 @@ async def call_tool(
 
 # --- Agent chat endpoint (placeholder for Phase 4) ---
 
+
 class ChatRequest(BaseModel):
     message: str
     conversation_id: str | None = None
@@ -241,24 +247,24 @@ async def chat(
     pending = []
     if state.needs_approval and state.pending_action:
         pa = state.pending_action
-        pending.append({
-            "tool": pa.tool_name,
-            "arguments": pa.arguments,
-            "description": f"Pending: {pa.tool_name}",
-        })
+        pending.append(
+            {
+                "tool": pa.tool_name,
+                "arguments": pa.arguments,
+                "description": f"Pending: {pa.tool_name}",
+            }
+        )
 
     return ChatResponse(
         reply=state.final_response or state.draft_response or "I couldn't generate a response.",
-        sources=[
-            {"type": s.source_type, "id": s.source_id, "title": s.title}
-            for s in state.sources
-        ],
+        sources=[{"type": s.source_type, "id": s.source_id, "title": s.title} for s in state.sources],
         pending_actions=pending,
         trace_id=state.trace_id,
     )
 
 
 # --- Audit log endpoints ---
+
 
 @app.get("/audit")
 async def get_audit_log(
@@ -269,6 +275,7 @@ async def get_audit_log(
     session = SessionLocal()
     try:
         from sqlalchemy import select
+
         from company.models import AuditLog
 
         stmt = select(AuditLog).order_by(AuditLog.timestamp.desc())
@@ -297,6 +304,7 @@ async def get_audit_log(
 
 # --- Health ---
 
+
 @app.get("/health")
 async def health() -> dict:
     return {"status": "ok", "service": "keystone"}
@@ -304,14 +312,17 @@ async def health() -> dict:
 
 # --- Mode (live vs replay) ---
 
+
 @app.get("/mode")
 async def get_mode() -> dict:
     import os
+
     mode = os.getenv("KEYSTONE_MODE", "live")
     return {"mode": mode}
 
 
 # --- Evals endpoint ---
+
 
 @app.get("/evals/results")
 async def get_eval_results() -> dict:
@@ -350,6 +361,7 @@ def clear_response_cache() -> int:
 
 # --- SSE Streaming chat endpoint ---
 
+
 @app.post("/chat/stream")
 async def chat_stream(
     req: ChatRequest,
@@ -367,6 +379,7 @@ async def chat_stream(
         async def replay():
             for line in cached[1]:
                 yield line
+
         return StreamingResponse(replay(), media_type="text/event-stream")
 
     async def generate():
@@ -396,7 +409,13 @@ async def chat_stream(
                 events.append(line)
                 yield line
                 if tc.result is not None:
-                    line = f"data: {json.dumps({'type': 'tool_result', 'tool': tc.tool_name, 'success': tc.result.get('success', False), 'data': tc.result.get('data')})}\n\n"
+                    payload = {
+                        "type": "tool_result",
+                        "tool": tc.tool_name,
+                        "success": tc.result.get("success", False),
+                        "data": tc.result.get("data"),
+                    }
+                    line = f"data: {json.dumps(payload)}\n\n"
                     events.append(line)
                     yield line
 
@@ -450,6 +469,7 @@ async def chat_stream(
 
 # --- Approvals endpoints ---
 
+
 @app.get("/approvals")
 async def list_approvals(
     principal: Principal = Depends(get_current_principal),
@@ -473,6 +493,7 @@ async def decide_approval(
 
 
 # --- Trace endpoint ---
+
 
 @app.get("/trace/{trace_id}")
 async def get_trace(
@@ -507,6 +528,7 @@ async def get_trace(
 
 # --- Helpers ---
 
+
 def _create_audit_log(
     principal: Principal,
     tool: str,
@@ -519,7 +541,7 @@ def _create_audit_log(
     session = SessionLocal()
     try:
         entry = AuditLog(
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
             user_id=principal.user_id,
             role=principal.role,
             tool=tool,

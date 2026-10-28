@@ -29,25 +29,24 @@ def list_customers(
     with rls_session(principal) as session:
         stmt = select(Customer)
         if query:
-            stmt = stmt.where(
-                (Customer.name.ilike(f"%{query}%"))
-                | (Customer.contact_email.ilike(f"%{query}%"))
-            )
+            stmt = stmt.where((Customer.name.ilike(f"%{query}%")) | (Customer.contact_email.ilike(f"%{query}%")))
         if industry:
             stmt = stmt.where(Customer.industry.ilike(f"%{industry}%"))
 
         stmt = stmt.order_by(Customer.name).limit(limit)
         results = session.execute(stmt).scalars().all()
 
-        return tool_result([
-            {
-                "id": c.id,
-                "name": c.name,
-                "industry": c.industry,
-                "contact_email": c.contact_email,
-            }
-            for c in results
-        ])
+        return tool_result(
+            [
+                {
+                    "id": c.id,
+                    "name": c.name,
+                    "industry": c.industry,
+                    "contact_email": c.contact_email,
+                }
+                for c in results
+            ]
+        )
 
 
 def search_deals(
@@ -62,10 +61,7 @@ def search_deals(
     with rls_session(principal) as session:
         stmt = select(Deal).join(Customer)
         if query:
-            stmt = stmt.where(
-                (Deal.title.ilike(f"%{query}%"))
-                | (Customer.name.ilike(f"%{query}%"))
-            )
+            stmt = stmt.where((Deal.title.ilike(f"%{query}%")) | (Customer.name.ilike(f"%{query}%")))
         if stage:
             stmt = stmt.where(Deal.stage == stage)
         if customer_id:
@@ -79,20 +75,22 @@ def search_deals(
         if not results:
             return tool_result([])
 
-        return tool_result([
-            {
-                "deal_id": d.deal_id,
-                "title": d.title,
-                "customer_id": d.customer_id,
-                "owner_id": d.owner_id,
-                "value": d.value,
-                "stage": d.stage,
-                "created_at": d.created_at.isoformat(),
-                "updated_at": d.updated_at.isoformat(),
-                "canary": d.canary,
-            }
-            for d in results
-        ])
+        return tool_result(
+            [
+                {
+                    "deal_id": d.deal_id,
+                    "title": d.title,
+                    "customer_id": d.customer_id,
+                    "owner_id": d.owner_id,
+                    "value": d.value,
+                    "stage": d.stage,
+                    "created_at": d.created_at.isoformat(),
+                    "updated_at": d.updated_at.isoformat(),
+                    "canary": d.canary,
+                }
+                for d in results
+            ]
+        )
 
 
 def get_deal(principal: Principal, deal_id: str) -> dict:
@@ -104,17 +102,19 @@ def get_deal(principal: Principal, deal_id: str) -> dict:
         if not deal:
             return access_denied("deal", "Deal not found or access denied.")
 
-        return tool_result({
-            "deal_id": deal.deal_id,
-            "title": deal.title,
-            "customer_id": deal.customer_id,
-            "owner_id": deal.owner_id,
-            "value": deal.value,
-            "stage": deal.stage,
-            "created_at": deal.created_at.isoformat(),
-            "updated_at": deal.updated_at.isoformat(),
-            "canary": deal.canary,
-        })
+        return tool_result(
+            {
+                "deal_id": deal.deal_id,
+                "title": deal.title,
+                "customer_id": deal.customer_id,
+                "owner_id": deal.owner_id,
+                "value": deal.value,
+                "stage": deal.stage,
+                "created_at": deal.created_at.isoformat(),
+                "updated_at": deal.updated_at.isoformat(),
+                "canary": deal.canary,
+            }
+        )
 
 
 def update_deal_stage(
@@ -139,13 +139,15 @@ def update_deal_stage(
         deal.updated_at = datetime.utcnow()
         session.flush()
 
-        return tool_result({
-            "deal_id": deal.deal_id,
-            "old_stage": old_stage,
-            "new_stage": new_stage,
-            "action": "update_deal_stage",
-            "requires_approval": True,
-        })
+        return tool_result(
+            {
+                "deal_id": deal.deal_id,
+                "old_stage": old_stage,
+                "new_stage": new_stage,
+                "action": "update_deal_stage",
+                "requires_approval": True,
+            }
+        )
 
 
 TOOLS = {

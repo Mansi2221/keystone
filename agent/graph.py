@@ -7,7 +7,6 @@ import json
 import logging
 import re
 import uuid
-from typing import Any, Literal
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
@@ -18,9 +17,9 @@ from agent.guards import (
     scan_output_for_leaks,
     wrap_untrusted,
 )
-from company.config import settings
 from agent.prompts import PLANNER_PROMPT, SELF_CHECK_PROMPT, SYSTEM_PROMPT, SYSTEM_PROMPT_BARE
 from agent.state import AgentState, Source, ToolCall
+from company.config import settings
 from company.principal import Principal
 from mcp_servers.registry import get_tool_definitions, invoke_tool, is_write_tool
 
@@ -47,12 +46,14 @@ def _active_system_prompt() -> str:
 def _get_llm():
     """Get the configured LLM client for the agent."""
     from company.llm import get_llm
+
     return get_llm("agent")
 
 
 def _invoke_agent_llm(messages, principal_id=None, use_cache=True):
     """Invoke agent LLM with rate limiting, retry, and disk cache."""
     from company.llm import invoke_llm
+
     return invoke_llm(messages, purpose="agent", principal_id=principal_id, use_cache=use_cache)
 
 
@@ -114,9 +115,7 @@ def planner_node(state: AgentState) -> AgentState:
 
     # Full LLM planner for complex queries
     tools = get_tool_definitions()
-    tool_list = "\n".join(
-        f"- {t['name']}: {t['description']}" for t in tools
-    )
+    tool_list = "\n".join(f"- {t['name']}: {t['description']}" for t in tools)
 
     prompt = PLANNER_PROMPT.format(
         user_message=state.user_message,
@@ -194,7 +193,7 @@ def tool_router_node(state: AgentState) -> AgentState:
         if name in tool_map:
             t = tool_map[name]
             params_desc = ", ".join(
-                f'{pname} ({pinfo["type"]}): {pinfo["description"]}'
+                f"{pname} ({pinfo['type']}): {pinfo['description']}"
                 for pname, pinfo in t["parameters"].get("properties", {}).items()
             )
             required = t["parameters"].get("required", [])
@@ -237,19 +236,23 @@ def tool_router_node(state: AgentState) -> AgentState:
 
         # Build ToolCall objects, using parsed args or empty dict as fallback
         for tool_name in state.planned_tools:
-            state.tool_calls.append(ToolCall(
-                tool_name=tool_name,
-                arguments=parsed_calls.get(tool_name, {}),
-            ))
+            state.tool_calls.append(
+                ToolCall(
+                    tool_name=tool_name,
+                    arguments=parsed_calls.get(tool_name, {}),
+                )
+            )
 
     except Exception as e:
         logger.warning("Tool router LLM failed, using empty args: %s", e)
         # Fallback: create calls with empty arguments so executor still runs
         for tool_name in state.planned_tools:
-            state.tool_calls.append(ToolCall(
-                tool_name=tool_name,
-                arguments={},
-            ))
+            state.tool_calls.append(
+                ToolCall(
+                    tool_name=tool_name,
+                    arguments={},
+                )
+            )
 
     return state
 
@@ -277,6 +280,7 @@ def _coerce_arg_types(arguments: dict, props: dict) -> dict:
 # ============================================================
 # Node: Tool Executor
 # ============================================================
+
 
 def tool_executor_node(state: AgentState) -> AgentState:
     """Execute tool calls with Cerbos policy checks.
@@ -342,7 +346,8 @@ def tool_executor_node(state: AgentState) -> AgentState:
                 state.input_guard_flags.extend(injection_flags)
                 logger.warning(
                     "Injection detected in tool %s result: %s",
-                    tc.tool_name, injection_flags,
+                    tc.tool_name,
+                    injection_flags,
                 )
                 if result.get("data"):
                     result["_untrusted"] = True
@@ -364,28 +369,35 @@ def _extract_sources(result: dict, tool_name: str, state: AgentState) -> None:
         if not isinstance(item, dict):
             continue
         if "doc_id" in item:
-            state.sources.append(Source(
-                source_type="document",
-                source_id=item["doc_id"],
-                title=item.get("title", ""),
-            ))
+            state.sources.append(
+                Source(
+                    source_type="document",
+                    source_id=item["doc_id"],
+                    title=item.get("title", ""),
+                )
+            )
         elif "ticket_id" in item:
-            state.sources.append(Source(
-                source_type="ticket",
-                source_id=item["ticket_id"],
-                title=item.get("title", ""),
-            ))
+            state.sources.append(
+                Source(
+                    source_type="ticket",
+                    source_id=item["ticket_id"],
+                    title=item.get("title", ""),
+                )
+            )
         elif "deal_id" in item:
-            state.sources.append(Source(
-                source_type="deal",
-                source_id=item["deal_id"],
-                title=item.get("title", ""),
-            ))
+            state.sources.append(
+                Source(
+                    source_type="deal",
+                    source_id=item["deal_id"],
+                    title=item.get("title", ""),
+                )
+            )
 
 
 # ============================================================
 # Node: Approval
 # ============================================================
+
 
 def approval_node(state: AgentState) -> AgentState:
     """Handle the approval interrupt for write actions.
@@ -424,6 +436,7 @@ def approval_node(state: AgentState) -> AgentState:
 # Node: Self-Check
 # ============================================================
 
+
 def self_check_node(state: AgentState) -> AgentState:
     """Verify the draft response is grounded and cites sources."""
     state.node_path.append("self_check")
@@ -454,6 +467,7 @@ def self_check_node(state: AgentState) -> AgentState:
 # Node: Output Scanner
 # ============================================================
 
+
 def output_scanner_node(state: AgentState) -> AgentState:
     """Scan the final response for canary leaks and sensitive data."""
     state.node_path.append("output_scanner")
@@ -478,7 +492,9 @@ def output_scanner_node(state: AgentState) -> AgentState:
         )
         logger.error(
             "OUTPUT LEAK BLOCKED for user %d (%s): %s",
-            state.principal.user_id, state.principal.role, flags,
+            state.principal.user_id,
+            state.principal.role,
+            flags,
         )
     else:
         state.final_response = state.draft_response
@@ -489,6 +505,7 @@ def output_scanner_node(state: AgentState) -> AgentState:
 # ============================================================
 # Node: Responder
 # ============================================================
+
 
 def responder_node(state: AgentState) -> AgentState:
     """Generate the final response from tool results."""
@@ -568,6 +585,7 @@ def responder_node(state: AgentState) -> AgentState:
 # Graph Definition
 # ============================================================
 
+
 def build_graph():
     """Build the LangGraph graph for the Keystone agent.
 
@@ -578,7 +596,7 @@ def build_graph():
                                     v
                                 approval -> tool_executor (resume)
     """
-    from langgraph.graph import StateGraph, END
+    from langgraph.graph import END, StateGraph
 
     graph = StateGraph(AgentState)
 

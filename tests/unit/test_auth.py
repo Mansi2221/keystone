@@ -56,16 +56,22 @@ class TestPrincipal:
 
     def test_can_see_report(self):
         p = Principal(
-            user_id=10, employee_id="MF-0010", role="manager",
-            department="Sales", report_ids=[20, 21, 22],
+            user_id=10,
+            employee_id="MF-0010",
+            role="manager",
+            department="Sales",
+            report_ids=[20, 21, 22],
         )
         assert p.can_see_report(20)
         assert not p.can_see_report(30)
 
     def test_has_group(self):
         p = Principal(
-            user_id=1, employee_id="MF-0001", role="executive",
-            department="Operations", groups=["leadership", "board_access"],
+            user_id=1,
+            employee_id="MF-0001",
+            role="executive",
+            department="Operations",
+            groups=["leadership", "board_access"],
         )
         assert p.has_group("leadership")
         assert not p.has_group("hr_full_access")

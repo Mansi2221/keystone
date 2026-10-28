@@ -8,10 +8,11 @@ import logging
 import re
 from typing import Any
 
+from sqlalchemy import select
+
 from company.database import SessionLocal
 from company.models import CanaryRecord
 from company.principal import Principal
-from sqlalchemy import select
 
 logger = logging.getLogger(__name__)
 
@@ -68,11 +69,7 @@ def wrap_untrusted(content: str, source: str = "tool_result") -> str:
     This marks the boundaries of external data so the model knows not to
     treat it as instructions.
     """
-    return (
-        f"<untrusted_data source=\"{source}\">\n"
-        f"{content}\n"
-        f"</untrusted_data>"
-    )
+    return f'<untrusted_data source="{source}">\n{content}\n</untrusted_data>'
 
 
 def scan_output_for_leaks(
@@ -92,9 +89,7 @@ def scan_output_for_leaks(
         session = SessionLocal()
         try:
             for canary_str in canaries_found:
-                record = session.execute(
-                    select(CanaryRecord).where(CanaryRecord.canary == canary_str)
-                ).scalar_one_or_none()
+                record = session.execute(select(CanaryRecord).where(CanaryRecord.canary == canary_str)).scalar_one_or_none()
 
                 if record is None:
                     # Unknown canaries are not necessarily leaks — skip silently
@@ -159,7 +154,9 @@ def check_tool_permission(
 
     # Contractors: no salary or review access at all
     if role == "contractor" and tool_name in (
-        "hr_get_salary", "hr_get_reviews", "hr_get_leave",
+        "hr_get_salary",
+        "hr_get_reviews",
+        "hr_get_leave",
     ):
         return f"Access denied: contractors cannot access {tool_name}"
 
