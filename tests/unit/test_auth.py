@@ -2,7 +2,7 @@
 
 import pytest
 
-from api.auth import create_access_token, decode_token, DEMO_USERS
+from api.auth import create_access_token, decode_token, get_demo_users
 from company.principal import Principal
 
 
@@ -15,8 +15,11 @@ class TestJWT:
         assert payload["sub"] == "42"
 
     def test_demo_users_defined(self):
-        """All expected demo roles should be present."""
-        roles = {info["role"] for info in DEMO_USERS.values()}
+        """All expected demo roles should be present (requires seeded DB)."""
+        demo_users = get_demo_users()
+        if not demo_users:
+            pytest.skip("No demo users available (DB not seeded)")
+        roles = {info["role"] for info in demo_users.values()}
         assert "executive" in roles
         assert "manager" in roles
         assert "hr_partner" in roles
@@ -27,7 +30,10 @@ class TestJWT:
 
     def test_demo_users_have_employee_ids(self):
         """Every demo user should have a positive employee ID."""
-        for key, info in DEMO_USERS.items():
+        demo_users = get_demo_users()
+        if not demo_users:
+            pytest.skip("No demo users available (DB not seeded)")
+        for key, info in demo_users.items():
             assert info["employee_id"] > 0, f"Demo user {key} has invalid employee_id"
 
 
