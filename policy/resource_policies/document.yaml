@@ -5,7 +5,7 @@ resourcePolicy:
   resource: document
   rules:
     # Board minutes: executives only
-    - actions: ["read"]
+    - actions: ["read", "search", "get"]
       effect: EFFECT_ALLOW
       roles: ["executive"]
       condition:
@@ -13,7 +13,7 @@ resourcePolicy:
           expr: request.resource.attr.doc_type == "board_minutes"
 
     # Board minutes denied for non-executives
-    - actions: ["read"]
+    - actions: ["read", "search", "get"]
       effect: EFFECT_DENY
       roles: ["individual_contributor", "manager", "hr_partner", "finance_analyst", "sales_rep", "contractor"]
       condition:
@@ -21,7 +21,7 @@ resourcePolicy:
           expr: request.resource.attr.doc_type == "board_minutes"
 
     # Documents accessible if user's groups overlap with access_groups
-    - actions: ["read"]
+    - actions: ["read", "search", "get"]
       effect: EFFECT_ALLOW
       roles: ["individual_contributor", "manager", "hr_partner", "finance_analyst", "sales_rep", "executive"]
       condition:
@@ -29,7 +29,7 @@ resourcePolicy:
           expr: request.resource.attr.access_groups.intersect(request.principal.attr.groups).size() > 0
 
     # Document owner can always read
-    - actions: ["read"]
+    - actions: ["read", "search", "get"]
       effect: EFFECT_ALLOW
       roles: ["individual_contributor", "manager", "hr_partner", "finance_analyst", "sales_rep", "executive"]
       condition:
@@ -37,11 +37,11 @@ resourcePolicy:
           expr: request.resource.attr.owner_id == request.principal.id
 
     # Executives can read all documents
-    - actions: ["read"]
+    - actions: ["read", "search", "get"]
       effect: EFFECT_ALLOW
       roles: ["executive"]
 
     # Contractors denied all documents
-    - actions: ["read"]
+    - actions: ["read", "search", "get"]
       effect: EFFECT_DENY
       roles: ["contractor"]

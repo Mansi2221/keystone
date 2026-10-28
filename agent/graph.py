@@ -27,6 +27,16 @@ from mcp_servers.registry import get_tool_definitions, invoke_tool, is_write_too
 logger = logging.getLogger(__name__)
 
 
+def _friendly_error(e: Exception) -> str:
+    """Convert an exception to a user-friendly error message."""
+    err_str = str(e).lower()
+    if "429" in err_str or "rate" in err_str or "quota" in err_str:
+        return "The AI model is busy right now. Please wait a moment and try again."
+    if "timeout" in err_str:
+        return "The request took too long. Please try a simpler question."
+    return "Something went wrong processing your request. Please try again."
+
+
 def _active_system_prompt() -> str:
     """Return the system prompt template, respecting ablation flags."""
     if settings.eval_mode and not settings.protection_enabled("system_prompt_rules"):
@@ -138,7 +148,7 @@ def planner_node(state: AgentState) -> AgentState:
                 state.planned_tools = [t.strip() for t in tools_str.split(",") if t.strip()]
     except Exception as e:
         logger.exception("Planner failed")
-        state.error = f"Planning failed: {e}"
+        state.error = _friendly_error(e)
 
     return state
 
@@ -637,6 +647,7 @@ def run_agent(
         return final_state
     except Exception as e:
         logger.exception("Agent run failed")
-        initial_state.error = str(e)
-        initial_state.final_response = f"I encountered an error processing your request: {e}"
+        friendly = _friendly_error(e)
+        initial_state.error = friendly
+        initial_state.final_response = friendly
         return initial_state
