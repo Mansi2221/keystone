@@ -302,6 +302,32 @@ async def health() -> dict:
     return {"status": "ok", "service": "keystone"}
 
 
+# --- Mode (live vs replay) ---
+
+@app.get("/mode")
+async def get_mode() -> dict:
+    import os
+    mode = os.getenv("KEYSTONE_MODE", "live")
+    return {"mode": mode}
+
+
+# --- Evals endpoint ---
+
+@app.get("/evals/results")
+async def get_eval_results() -> dict:
+    """Return the latest ablation results for the Evals view."""
+    import glob
+    from pathlib import Path
+
+    report_dir = Path("evals/reports")
+    files = sorted(glob.glob(str(report_dir / "ablation_*.json")))
+    if not files:
+        return {}
+
+    with open(files[-1]) as f:
+        return json.load(f)
+
+
 # --- Response cache (same user + question → replay cached SSE events) ---
 # Key includes user_id AND role, so cached responses never cross users.
 # Call clear_response_cache() after seed data or policy changes.
