@@ -20,7 +20,7 @@ const SCENARIO_MATCHERS: Array<{ keywords: string[]; prefix: string }> = [
 const PERSONA_MAP: Record<string, string> = {
   ceo: 'ceo',
   hr_partner: 'hr_partner',
-  ops_manager: 'contractor',
+  ops_manager: 'ceo',
   engineer: 'engineer',
   contractor: 'contractor',
   sales_rep: 'ceo',
@@ -47,6 +47,16 @@ const DEMO_USERS: DemoUser[] = [
     title: 'HR Business Partner',
     description: 'HR data access, salary visibility',
     groups: ['hr-team', 'all-employees'],
+  },
+  {
+    key: 'ops_manager',
+    employee_id: 9,
+    role: 'manager',
+    department: 'Operations',
+    name: 'Jose Richards',
+    title: 'Operations Manager',
+    description: 'Manages ops team, sees direct reports',
+    groups: ['operations', 'all-employees'],
   },
   {
     key: 'engineer',
@@ -92,6 +102,17 @@ const PRINCIPALS: Record<string, Principal> = {
     report_count: 3,
     name: 'John Wheeler',
     title: 'HR Business Partner',
+  },
+  ops_manager: {
+    user_id: 9,
+    employee_id: '9',
+    role: 'manager',
+    department: 'Operations',
+    groups: ['operations', 'all-employees'],
+    manager_id: 1,
+    report_count: 5,
+    name: 'Jose Richards',
+    title: 'Operations Manager',
   },
   engineer: {
     user_id: 12,
