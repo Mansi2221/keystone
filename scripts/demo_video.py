@@ -35,10 +35,10 @@ BASE_URL = "http://localhost:5173"
 
 # Personas to cycle through (must match the UI's people rail)
 PERSONAS = [
-    {"name": "Marcus Chen", "role": "CEO", "id": 1},
-    {"name": "Sarah Kim", "role": "HR Manager", "id": 5},
-    {"name": "James Liu", "role": "Sales Rep", "id": 9},
-    {"name": "Alex Rivera", "role": "Contractor", "id": 15},
+    {"name": "Danielle Johnson", "role": "CEO", "id": 1},
+    {"name": "John Wheeler", "role": "HR Business Partner", "id": 5},
+    {"name": "Jose Richards", "role": "Operations Manager", "id": 9},
+    {"name": "Michelle Rasmussen", "role": "Contractor", "id": 15},
 ]
 
 # Scenarios to demonstrate
