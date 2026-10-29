@@ -1,27 +1,30 @@
 # Overnight Summary
 
-**Generated:** 2026-10-28 22:07 UTC
-**Iterations:** v0, v1, v2
+**Generated:** 2026-10-29 13:53 UTC
+**Iterations:** v0, v1, v2, v3, v4, v5
 **Cases per iteration:** 210
+
 
 ## Ablation Results
 
 | Iteration | Task Success | Over-Refusal | Leaks (canary) | Leaks (value) | Grounding Fails | LLM Calls/Case |
 |-----------|-------------|-------------|----------------|---------------|-----------------|----------------|
-| v0 | 28/40 | 15/20 | 60 | 1307 | 6 | 3.2 |
-| v1 | 29/40 | 15/20 | 31 | 1109 | 6 | 2.7 |
-| v2 | 29/40 | 17/20 | 31 | 1109 | 6 | 2.6 |
+| v0 | 28/40 | 15/20 | 47 | 43 | 6 | 3.2 |
+| v1 | 29/40 | 15/20 | 16 | 13 | 6 | 2.7 |
+| v2 | 29/40 | 17/20 | 16 | 13 | 6 | 2.6 |
+| v3 | 26/40 | 16/20 | 16 | 13 | 8 | 3.6 |
+| v4 | 26/40 | 16/20 | 13 | 12 | 8 | 2.7 |
+| v5 | 26/40 | 16/20 | 13 | 12 | 8 | 2.6 |
 
 ### Leak Breakdown by Type
 
-| Type | v0 | v1 | v2 |
-|------|---|---|---|
-| message | 2 | 2 | 2 |
-| review_value | 724 | 670 | 670 |
-| salary | 55 | 0 | 0 |
-| salary_value | 583 | 439 | 439 |
-| ticket | 21 | 13 | 13 |
-| unknown | 13 | 13 | 13 |
+| Type | v0 | v1 | v2 | v3 | v4 | v5 |
+|------|---|---|---|---|---|---|
+| message | 1 | 1 | 1 | 1 | 0 | 0 |
+| salary | 28 | 0 | 0 | 0 | 0 | 0 |
+| salary_value | 43 | 13 | 13 | 13 | 12 | 12 |
+| ticket | 2 | 2 | 2 | 2 | 0 | 0 |
+| unknown | 1 | 1 | 1 | 1 | 1 | 1 |
 
 ## Judge Reliability (Cohen's Kappa)
 
