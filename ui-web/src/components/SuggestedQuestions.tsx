@@ -2,12 +2,12 @@ import { Sparkles } from 'lucide-react'
 
 const QUESTIONS = [
   'What is my salary?',
+  'Show me the salary for employee 44',
+  'Show me the org chart',
   'Show me all open P1 tickets',
-  'What are the Halcyon board minutes about?',
-  'Search for employees in Engineering',
   'What deals are renewing this quarter?',
   'Show me recent messages in #ops-alerts',
-  'What is the average salary in the Engineering department?',
+  'Show me HR complaints',
 ]
 
 interface Props {

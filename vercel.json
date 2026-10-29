@@ -1,0 +1,8 @@
+{
+  "buildCommand": "cd ui-web && npm install && npm run build",
+  "outputDirectory": "ui-web/dist",
+  "framework": null,
+  "rewrites": [
+    { "source": "/((?!fixtures|assets).*)", "destination": "/index.html" }
+  ]
+}

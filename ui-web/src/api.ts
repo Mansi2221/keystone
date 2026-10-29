@@ -1,4 +1,5 @@
 import type { AuditEntry, DemoUser, Principal, SSEEvent } from './types'
+import { shouldUseDemoMode, demoDemoUsers, demoLogin, demoFetchMe, demoStreamChat, demoUserKeyFromToken } from './demo'
 
 const BASE = '/api'
 
@@ -116,19 +117,29 @@ function friendlyError(res: Response, context: string): Error {
 // ─── Public API ─────────────────────────────────────────────────────────────
 
 export async function login(username: string): Promise<{ token: string; employee_id: number; role: string; name: string }> {
-  // Always get a fresh token on login
+  if (await shouldUseDemoMode()) {
+    const result = demoLogin(username)
+    setAuthState(username, result.token)
+    return result
+  }
   const result = await _rawLogin(username)
   setAuthState(username, result.token)
   return result
 }
 
 export async function fetchMe(token: string): Promise<Principal> {
+  if (await shouldUseDemoMode()) {
+    return demoFetchMe(demoUserKeyFromToken(token))
+  }
   const res = await authedFetch(`${BASE}/auth/me`)
   if (!res.ok) throw friendlyError(res, 'Loading profile')
   return res.json()
 }
 
 export async function fetchDemoUsers(): Promise<DemoUser[]> {
+  if (await shouldUseDemoMode()) {
+    return demoDemoUsers()
+  }
   const res = await fetch(`${BASE}/auth/demo-users`)
   if (!res.ok) throw friendlyError(res, 'Loading users')
   return res.json()
@@ -140,6 +151,11 @@ export async function streamChat(
   conversationId: string,
   onEvent: (event: SSEEvent) => void,
 ): Promise<void> {
+  if (await shouldUseDemoMode()) {
+    const userKey = demoUserKeyFromToken(token)
+    await demoStreamChat(userKey, message, onEvent)
+    return
+  }
   // Use the explicitly-passed token (important for compare mode with per-user tokens)
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
