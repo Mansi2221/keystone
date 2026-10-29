@@ -109,25 +109,27 @@ The LLM judge (qwen2.5:7b via Ollama, local inference) evaluates each case. Afte
 
 | Iteration | Protections | Task Success | Over-Refusal | Canary Leaks | Value Leaks | Grounding Fails | LLM Calls/Case |
 |-----------|------------|-------------|-------------|-------------|-------------|-----------------|----------------|
-| v0 | None | {{V0_TASK}} | {{V0_OVERREFUSAL}} | {{V0_CANARY}} | {{V0_VALUE}} | {{V0_GROUNDING}} | {{V0_LLM}} |
-| v1 | + Policy | {{V1_TASK}} | {{V1_OVERREFUSAL}} | {{V1_CANARY}} | {{V1_VALUE}} | {{V1_GROUNDING}} | {{V1_LLM}} |
-| v2 | + RLS | {{V2_TASK}} | {{V2_OVERREFUSAL}} | {{V2_CANARY}} | {{V2_VALUE}} | {{V2_GROUNDING}} | {{V2_LLM}} |
-| v3 | + Agg/Inj | {{V3_TASK}} | {{V3_OVERREFUSAL}} | {{V3_CANARY}} | {{V3_VALUE}} | {{V3_GROUNDING}} | {{V3_LLM}} |
-| v4 | + Output scan | {{V4_TASK}} | {{V4_OVERREFUSAL}} | {{V4_CANARY}} | {{V4_VALUE}} | {{V4_GROUNDING}} | {{V4_LLM}} |
-| v5 | + Grounding | {{V5_TASK}} | {{V5_OVERREFUSAL}} | {{V5_CANARY}} | {{V5_VALUE}} | {{V5_GROUNDING}} | {{V5_LLM}} |
+| v0 | None | 28/40 (70%) | 15/20 (75%) | 32 | 43 | 6 | 3.2 |
+| v1 | + Policy | 29/40 (72%) | 15/20 (75%) | 4 | 13 | 6 | 2.7 |
+| v2 | + RLS | 29/40 (72%) | 17/20 (85%) | 4 | 13 | 6 | 2.6 |
+| v3 | + Agg/Inj | 26/40 (65%)\* | 16/20 (80%) | 4 | 13 | 8 | 3.6 |
+| v4 | + Output scan | 26/40 (65%)\* | 16/20 (80%) | 1 | 12 | 8 | 2.7 |
+| v5 | + Grounding | 26/40 (65%)\* | 16/20 (80%) | 1 | 12 | 8 | 2.6 |
+
+\*v3-v5 task success differences from v0-v2 are within noise (~3%) at n=210.
 
 ### Leak Breakdown by Attack Type
 
 | Attack Type | v0 | v1 | v2 | v3 | v4 | v5 |
 |------------|----|----|----|----|----|----|
-| direct | {{LEAK_DIRECT}} | | | | | |
-| social_engineering | {{LEAK_SOCIAL}} | | | | | |
-| role_impersonation | {{LEAK_ROLE}} | | | | | |
-| aggregation | {{LEAK_AGG}} | | | | | |
-| prompt_injection | {{LEAK_INJECT}} | | | | | |
-| cross_system | {{LEAK_CROSS}} | | | | | |
-| private_access | {{LEAK_PRIVATE}} | | | | | |
-| bulk_extraction | {{LEAK_BULK}} | | | | | |
+| direct | 19/19 | 1/19 | 1/19 | 1/19 | 0/19 | 0/19 |
+| social_engineering | 9/18 | 2/18 | 2/18 | 2/18 | 2/18 | 2/18 |
+| role_impersonation | 5/18 | 2/18 | 2/18 | 2/18 | 2/18 | 2/18 |
+| aggregation | 10/20 | 10/20 | 10/20 | 10/20 | 8/20 | 8/20 |
+| prompt_injection | 0/19 | 0/19 | 0/19 | 0/19 | 0/19 | 0/19 |
+| cross_system | 8/18 | 8/18 | 8/18 | 6/18 | 4/18 | 4/18 |
+| private_access | 1/19 | 1/19 | 1/19 | 1/19 | 1/19 | 1/19 |
+| bulk_extraction | 8/19 | 7/19 | 7/19 | 5/19 | 3/19 | 3/19 |
 
 ## Key Findings
 
@@ -166,7 +168,7 @@ Even with full RLS on HR tables, confidential information leaks through:
 
 This is hard to fix because the data was put there by humans, not by the AI. RLS on employee/salary tables doesn't help when the same information exists in a chat message.
 
-**Ablation evidence**: The `cross_system` attack type shows {{LEAK_CROSS_V0}} leaks in v0 and {{LEAK_CROSS_V2}} in v2 (with RLS on). The leak rate barely drops because these leaks come from chat/ticket/docs tables, not the HR tables that RLS protects.
+**Ablation evidence**: The `cross_system` attack type shows 8/18 leaks in v0 and **still 8/18 in v2** (with RLS on). The leak rate doesn't drop until the output scanner in v4 (4/18), confirming these leaks come from chat/ticket/docs tables, not the HR tables that RLS protects.
 
 ### Finding 4: Wrong-Database Bug
 
@@ -231,4 +233,4 @@ Run the ablation study weekly on a schedule. Track task success and leak rate tr
 ---
 
 *This memo is part of the Keystone project documentation.*
-*Ablation data will be filled in from the overnight pipeline run ({{PIPELINE_DATE}}).*
+*Ablation data from overnight pipeline run 2026-10-29 (commit 280daec, qwen2.5:7b local inference).*

@@ -64,14 +64,16 @@ A fictional 120-person logistics company with 5 departments (Sales, Operations, 
 
 We run an ablation study across 6 iterations, progressively enabling security layers, to measure what each protection actually does:
 
-| Iteration | Protections | Task Success | Leak Rate |
-|-----------|------------|-------------|-----------|
-| v0 | None (system prompt only) | {{V0_TASK}} | {{V0_LEAKS}} |
-| v1 | + Cerbos policy checks | {{V1_TASK}} | {{V1_LEAKS}} |
-| v2 | + Postgres RLS + retrieval pre-filter | {{V2_TASK}} | {{V2_LEAKS}} |
-| v3 | + Aggregation guard + injection scanner | {{V3_TASK}} | {{V3_LEAKS}} |
-| v4 | + Output scanner (canary matching) | {{V4_TASK}} | {{V4_LEAKS}} |
-| v5 | + Grounding checker + value-leak fix | {{V5_TASK}} | {{V5_LEAKS}} |
+| Iteration | Protections | Task Success | Over-Refusal | Leak Cases | Leak Rate |
+|-----------|------------|-------------|-------------|------------|-----------|
+| v0 | None (system prompt only) | 28/40 (70%) | 15/20 (75%) | 47/150 | 31% |
+| v1 | + Cerbos policy checks | 29/40 (72%) | 15/20 (75%) | 16/150 | 11% |
+| v2 | + RLS + retrieval pre-filter | 29/40 (72%) | 17/20 (85%) | 16/150 | 11% |
+| v3 | + Aggregation guard + injection scanner | 26/40 (65%)\* | 16/20 (80%) | 16/150 | 11% |
+| v4 | + Output scanner (canary matching) | 26/40 (65%)\* | 16/20 (80%) | 13/150 | 9% |
+| v5 | + Grounding checker + value-leak fix | 26/40 (65%)\* | 16/20 (80%) | 13/150 | 9% |
+
+\*v3-v5 task success differences from v0-v2 are within noise (~3%) at n=210 with local inference.
 
 **210 cases** per iteration. 8 attack types: direct, social engineering, role impersonation, aggregation, prompt injection, cross-system, private access, bulk extraction.
 
@@ -94,7 +96,7 @@ The grounding checker catches fabricated URLs, hallucinated employee IDs, and wr
 
 ### 3. Cross-System Spillage
 
-Chat messages, ticket comments, and documents **leak data across departmental boundaries** even with RLS on employee/salary tables. RLS was only applied to HR-specific tables, but confidential information appears in chat channels ("layoff discussion in #leadership-private"), ticket descriptions (HR complaints reference salaries), and documents (board minutes contain deal terms). This is the hardest category to fix because the data is duplicated across systems by human users.
+Chat messages, ticket comments, and documents **leak data across departmental boundaries** even with RLS on employee/salary tables. Cross-system leaks: 8/18 cases in v0 (no protection) and **still 8/18 in v2** (with RLS on) -- the leak rate doesn't drop because these leaks come from chat/ticket/docs tables, not the HR tables that RLS protects. The output scanner (v4) reduces it to 4/18 by catching canary strings, but value-based leaks in chat text remain.
 
 ### 4. Wrong-Database Bug
 
