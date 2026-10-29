@@ -18,7 +18,8 @@ cd "$REPO_ROOT"
 source .venv/bin/activate 2>/dev/null || true
 
 export PROFILE=local
-export DATABASE_URL=postgresql://keystone:keystone_dev_password@localhost:5432/keystone
+export POSTGRES_PORT="${POSTGRES_PORT:-5433}"
+export DATABASE_URL="${DATABASE_URL:-postgresql://keystone:keystone_dev_password@localhost:${POSTGRES_PORT}/keystone}"
 
 ABLATION_REPORT="evals/reports/ablation_20261028_132251.json"
 LABELS="evals/labels/labels_20261028_205836.jsonl"
@@ -143,10 +144,21 @@ run_v5() {
 # ─── Step (b): Merge finish → main ───
 merge_to_main() {
     log "Current branch: $(git branch --show-current)"
-    git checkout main
-    git pull origin main --ff-only || true
-    git merge finish --no-edit -m "Merge finish: v5 fixes, grounding checker, value-leak fix, overnight pipeline"
-    git checkout finish  # Switch back for remaining steps
+    # Push finish to remote first
+    git push origin finish || true
+
+    # Find the main worktree path (can't checkout main here — it's in another worktree)
+    local main_wt
+    main_wt=$(git worktree list | grep '\[main\]' | awk '{print $1}')
+    if [ -n "$main_wt" ]; then
+        log "Merging via main worktree at $main_wt"
+        git -C "$main_wt" pull origin main --ff-only || true
+        git -C "$main_wt" merge finish --no-edit -m "Merge finish: v5 fixes, grounding checker, value-leak fix, overnight pipeline"
+    else
+        # No main worktree — try direct push (fast-forward only)
+        log "No main worktree found, pushing finish → origin/main"
+        git push origin finish:main
+    fi
     log "Merged finish → main"
 }
 
@@ -216,7 +228,13 @@ ${incomplete_msg}
 
 Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>"
     git push origin finish
-    git push origin main 2>/dev/null || true
+    # Also update main with the new results
+    local main_wt
+    main_wt=$(git worktree list | grep '\[main\]' | awk '{print $1}')
+    if [ -n "$main_wt" ]; then
+        git -C "$main_wt" merge finish --no-edit -m "Merge finish: overnight results" 2>/dev/null || true
+        git -C "$main_wt" push origin main 2>/dev/null || true
+    fi
     log "Committed and pushed"
 }
 
