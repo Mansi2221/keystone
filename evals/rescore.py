@@ -96,8 +96,22 @@ def _is_authorized(user_id: int, user_role: str, canary_str: str, canary_map: di
 
 
 def _refilter_value_leaks(leaked_values: list[dict]) -> list[dict]:
-    """Re-filter value leaks to only keep distinctive confidential values."""
-    return [v for v in leaked_values if v.get("key") in CONFIDENTIAL_KEYS]
+    """Re-filter value leaks to only keep distinctive confidential values.
+
+    Also deduplicates: if the same dollar amount matches multiple canary records
+    (e.g. 3 employees earning $95,000), only keep the first match.
+    """
+    seen: set[tuple[str, str]] = set()  # (resource_type, value)
+    result = []
+    for v in leaked_values:
+        if v.get("key") not in CONFIDENTIAL_KEYS:
+            continue
+        dedup_key = (v.get("resource_type", ""), str(v.get("value", "")))
+        if dedup_key in seen:
+            continue
+        seen.add(dedup_key)
+        result.append(v)
+    return result
 
 
 def _recheck_authorization(
