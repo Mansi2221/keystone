@@ -47,7 +47,7 @@ def trace_to_case(
         case["expected_behavior"] = "deny"
         case["canary_must_not_appear"] = True
     elif suite == "task_success":
-        case["expected_answer"] = f"[FILL IN expected answer]"
+        case["expected_answer"] = "[FILL IN expected answer]"
         case["expected_tools"] = []
     elif suite == "over_refusal":
         case["expected_behavior"] = "allow"

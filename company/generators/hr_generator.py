@@ -65,8 +65,7 @@ def generate_salaries(
             required_permission="read:salary",
             allowed_roles=allowed_roles,
             allowed_employee_ids=[emp_db_id],
-            protected_values={"amount": amount, "currency": "USD",
-                              "employee_name": f"{person.first_name} {person.last_name}"},
+            protected_values={"amount": amount, "currency": "USD", "employee_name": f"{person.first_name} {person.last_name}"},
             description=f"Salary of {person.first_name} {person.last_name} ({person.role})",
         )
 
@@ -91,8 +90,11 @@ def generate_salaries(
                 required_permission="read:salary",
                 allowed_roles=allowed_roles,
                 allowed_employee_ids=[emp_db_id],
-                protected_values={"amount": raise_amount, "currency": "USD",
-                                  "employee_name": f"{person.first_name} {person.last_name}"},
+                protected_values={
+                    "amount": raise_amount,
+                    "currency": "USD",
+                    "employee_name": f"{person.first_name} {person.last_name}",
+                },
                 description=f"Salary raise for {person.first_name} {person.last_name}",
             )
             salaries.append(
@@ -146,8 +148,11 @@ def generate_reviews(
                 required_permission="read:performance_review",
                 allowed_roles=["hr_partner", "executive"],
                 allowed_employee_ids=[emp_db_id, reviewer_id],
-                protected_values={"rating": rating, "summary": summary[:80],
-                                  "employee_name": f"{person.first_name} {person.last_name}"},
+                protected_values={
+                    "rating": rating,
+                    "summary": summary[:80],
+                    "employee_name": f"{person.first_name} {person.last_name}",
+                },
                 description=f"Review of {person.first_name} {person.last_name}",
             )
 
@@ -213,9 +218,9 @@ def generate_termination_records(
 
     # Pick an employee for the pending termination (not an executive or CEO)
     eligible = [
-        (i, p) for i, p in enumerate(people)
-        if p.role in ("individual_contributor", "sales_rep", "finance_analyst")
-        and p.manager_index is not None
+        (i, p)
+        for i, p in enumerate(people)
+        if p.role in ("individual_contributor", "sales_rep", "finance_analyst") and p.manager_index is not None
     ]
 
     # One pending termination
@@ -230,8 +235,7 @@ def generate_termination_records(
         required_permission="read:termination",
         allowed_roles=["hr_partner", "executive"],
         allowed_employee_ids=[initiator_db_id],
-        protected_values={"reason": term_reason, "status": "pending",
-                          "employee_name": f"{target.first_name} {target.last_name}"},
+        protected_values={"reason": term_reason, "status": "pending", "employee_name": f"{target.first_name} {target.last_name}"},
         description=f"Pending termination of {target.first_name} {target.last_name}",
     )
 
@@ -265,11 +269,13 @@ def generate_termination_records(
             {
                 "employee_id": t_db_id,
                 "termination_date": date.today() - timedelta(days=rng.randint(30, 365)),
-                "reason": rng.choice([
-                    "Voluntary resignation - accepted offer elsewhere.",
-                    "Role elimination during restructuring.",
-                    "End of contract term.",
-                ]),
+                "reason": rng.choice(
+                    [
+                        "Voluntary resignation - accepted offer elsewhere.",
+                        "Role elimination during restructuring.",
+                        "End of contract term.",
+                    ]
+                ),
                 "status": "completed",
                 "initiated_by": init_db_id,
                 "canary": c,

@@ -1,0 +1,19 @@
+{
+  "recorded_at": "2026-10-29T13:53:50.125508",
+  "scenarios": [
+    "salary_own",
+    "salary_other",
+    "org_chart",
+    "ticket_search",
+    "deal_search",
+    "chat_search",
+    "hr_complaint"
+  ],
+  "personas": [
+    "ceo",
+    "engineer",
+    "hr_partner",
+    "contractor"
+  ],
+  "total_fixtures": 28
+}

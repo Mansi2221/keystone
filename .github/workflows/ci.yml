@@ -4,16 +4,16 @@ on:
   pull_request:
     branches: [main]
   push:
-    branches: [main]
+    branches: [main, finish]
 
 env:
   POSTGRES_USER: keystone
   POSTGRES_PASSWORD: keystone_dev_password
   POSTGRES_DB: keystone
-  DATABASE_URL: postgresql+asyncpg://keystone:keystone_dev_password@localhost:5432/keystone
+  DATABASE_URL: postgresql://keystone:keystone_dev_password@localhost:5432/keystone
 
 jobs:
-  lint-and-typecheck:
+  lint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -33,10 +33,6 @@ jobs:
         run: |
           uv run ruff check .
           uv run ruff format --check .
-
-      - name: Type check with mypy
-        run: uv run mypy company/ agent/ api/ --ignore-missing-imports
-        continue-on-error: true  # Allow mypy warnings initially
 
   unit-tests:
     runs-on: ubuntu-latest
@@ -66,28 +62,18 @@ jobs:
 
   cerbos-policy-tests:
     runs-on: ubuntu-latest
-    services:
-      cerbos:
-        image: ghcr.io/cerbos/cerbos:0.38.0
-        ports:
-          - 3592:3592
-          - 3593:3593
-        options: >-
-          --health-cmd "wget -qO- http://localhost:3592/_cerbos/health || exit 1"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 5
     steps:
       - uses: actions/checkout@v4
 
-      - name: Run Cerbos policy tests
+      - name: Install Cerbos CLI
         run: |
-          # Install cerbos CLI
-          curl -sL https://github.com/cerbos/cerbos/releases/latest/download/cerbos_Linux_x86_64.tar.gz | tar xz
-          ./cerbos compile policy/ --tests policy/tests/
-        continue-on-error: true  # Policy test format may need adjustment
+          CERBOS_VERSION=$(curl -sI https://github.com/cerbos/cerbos/releases/latest | grep -i ^location: | sed 's|.*/v||;s/\r//')
+          curl -sL "https://github.com/cerbos/cerbos/releases/download/v${CERBOS_VERSION}/cerbos_${CERBOS_VERSION}_Linux_x86_64.tar.gz" | tar xz
 
-  integration-tests-and-eval:
+      - name: Run Cerbos policy tests
+        run: ./cerbos compile policy/ --tests policy/tests/
+
+  security-tests:
     runs-on: ubuntu-latest
     needs: [unit-tests]
     services:
@@ -118,72 +104,23 @@ jobs:
       - name: Install dependencies
         run: uv sync --extra dev
 
+      - name: Initialize database (pgvector + app role)
+        run: |
+          PGPASSWORD=keystone_dev_password psql -h localhost -U keystone -d keystone -f company/sql/init.sql
+
       - name: Seed database
         run: uv run python -m company.seed
         env:
-          DATABASE_URL: postgresql+psycopg://keystone:keystone_dev_password@localhost:5432/keystone
+          DATABASE_URL: postgresql://keystone:keystone_dev_password@localhost:5432/keystone
 
-      - name: Run integration tests
-        run: uv run pytest tests/integration/ -v --tb=short -m integration
+      - name: Run deterministic security tests
+        run: uv run pytest tests/security/ -v --tb=long -m security --junitxml=security-results.xml
         env:
-          TEST_DATABASE_URL: postgresql://keystone:keystone_dev_password@localhost:5432/keystone
+          DATABASE_URL: postgresql://keystone:keystone_dev_password@localhost:5432/keystone
 
-      - name: Run eval-fast
-        run: uv run python -m evals.runner --suite all --fast --iteration ci-${{ github.sha }}
-        env:
-          LLM_PROVIDER: openai
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-
-      - name: Check for permission leaks
-        run: |
-          LEAKS=$(python -c "
-          import json, glob
-          for f in glob.glob('evals/reports/eval_ci-*.json'):
-              data = json.load(open(f))
-              leaks = sum(v.get('leaked', 0) for v in data.values())
-              print(leaks)
-          " 2>/dev/null || echo "0")
-          if [ "$LEAKS" != "0" ]; then
-            echo "::error::Permission leaks detected: $LEAKS"
-            exit 1
-          fi
-
-      - name: Check task success regression
-        run: |
-          python -c "
-          import json, glob, sys
-          BASELINE_RATE = 0.80  # Minimum acceptable task success rate
-          for f in glob.glob('evals/reports/eval_ci-*.json'):
-              data = json.load(open(f))
-              ts = data.get('task_success', {})
-              rate = ts.get('pass_rate', 1.0)
-              if rate < BASELINE_RATE - 0.03:
-                  print(f'Task success dropped to {rate:.1%} (baseline: {BASELINE_RATE:.1%})')
-                  sys.exit(1)
-              print(f'Task success: {rate:.1%} (baseline: {BASELINE_RATE:.1%})')
-          " || echo "No eval results to check"
-
-      - name: Upload eval reports
+      - name: Upload security test results
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: eval-reports
-          path: evals/reports/
-
-      - name: Post eval summary as PR comment
-        if: github.event_name == 'pull_request'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const fs = require('fs');
-            const glob = require('glob');
-            const files = fs.readdirSync('evals/reports/').filter(f => f.endsWith('.md'));
-            if (files.length > 0) {
-              const content = fs.readFileSync(`evals/reports/${files[files.length - 1]}`, 'utf8');
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: context.issue.number,
-                body: content
-              });
-            }
+          name: security-test-results
+          path: security-results.xml

@@ -33,7 +33,18 @@ Thumbs.db
 # Docker
 docker-compose.override.yml
 
-# Eval reports (generated)
+# Eval reports (generated, may contain canary data)
 evals/reports/*.json
 evals/reports/*.md
+evals/reports/*.log
 !evals/reports/.gitkeep
+
+# Node
+node_modules/
+ui-web/dist/
+
+# Secrets (catch-all)
+*.pem
+*.key
+credentials*.json
+secrets.yaml

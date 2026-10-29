@@ -98,9 +98,7 @@ class TestDocuments:
             if any(marker.lower() in content_lower for marker in injection_markers):
                 injected_count += 1
 
-        assert injected_count >= 15, (
-            f"Expected 15+ documents with prompt injections, got {injected_count}"
-        )
+        assert injected_count >= 15, f"Expected 15+ documents with prompt injections, got {injected_count}"
 
     def test_all_docs_have_content(self, seed_data):
         """Every document should have non-empty content."""

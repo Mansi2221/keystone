@@ -10,8 +10,6 @@ import logging
 from pathlib import Path
 from typing import Any
 
-import numpy as np
-
 from evals.judge import judge_task_success
 
 logger = logging.getLogger(__name__)
@@ -52,14 +50,16 @@ def label_cli() -> None:
             except ValueError:
                 score = 1.0 if verdict == "y" else 0.0
 
-            labels.append({
-                "question": question,
-                "expected": expected,
-                "response": response,
-                "role": role,
-                "human_pass": verdict == "y",
-                "human_score": score,
-            })
+            labels.append(
+                {
+                    "question": question,
+                    "expected": expected,
+                    "response": response,
+                    "role": role,
+                    "human_pass": verdict == "y",
+                    "human_score": score,
+                }
+            )
 
             LABELS_FILE.write_text(json.dumps(labels, indent=2))
             print(f"Saved ({len(labels)} total)")
@@ -74,9 +74,7 @@ def calibrate() -> dict[str, Any]:
     Returns Cohen's kappa, precision, recall, and disagreement cases.
     """
     if not LABELS_FILE.exists():
-        raise FileNotFoundError(
-            f"No labels found at {LABELS_FILE}. Run 'python -m evals.calibration label' first."
-        )
+        raise FileNotFoundError(f"No labels found at {LABELS_FILE}. Run 'python -m evals.calibration label' first.")
 
     labels = json.loads(LABELS_FILE.read_text())
     logger.info("Calibrating on %d labeled examples", len(labels))
@@ -99,13 +97,15 @@ def calibrate() -> dict[str, Any]:
         judge_pass.append(j)
 
         if h != j:
-            disagreements.append({
-                "index": i,
-                "question": label["question"][:80],
-                "human": h,
-                "judge": j,
-                "judge_reasoning": result.get("reasoning", ""),
-            })
+            disagreements.append(
+                {
+                    "index": i,
+                    "question": label["question"][:80],
+                    "human": h,
+                    "judge": j,
+                    "judge_reasoning": result.get("reasoning", ""),
+                }
+            )
 
     # Compute metrics
     n = len(human_pass)
@@ -128,7 +128,10 @@ def calibrate() -> dict[str, Any]:
         "recall": round(recall, 3),
         "cohens_kappa": round(kappa, 3),
         "observed_agreement": round(po, 3),
-        "tp": tp, "fp": fp, "fn": fn, "tn": tn,
+        "tp": tp,
+        "fp": fp,
+        "fn": fn,
+        "tn": tn,
         "disagreements": disagreements,
     }
 
@@ -139,7 +142,10 @@ def calibrate() -> dict[str, Any]:
 
     logger.info(
         "Calibration: kappa=%.3f, precision=%.3f, recall=%.3f, %d disagreements",
-        kappa, precision, recall, len(disagreements),
+        kappa,
+        precision,
+        recall,
+        len(disagreements),
     )
 
     return metrics

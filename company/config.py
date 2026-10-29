@@ -4,7 +4,6 @@ from pathlib import Path
 
 from pydantic_settings import BaseSettings
 
-
 # ── Profile presets ───────────────────────────────────────────
 # PROFILE selects default provider/model for agent + judge.
 # Explicit LLM_PROVIDER / JUDGE_PROVIDER in .env override these.
@@ -40,16 +39,12 @@ class Settings(BaseSettings):
     postgres_db: str = "keystone"
     postgres_user: str = "keystone"
     postgres_password: str = "keystone_dev_password"
-    database_url: str = (
-        "postgresql+asyncpg://keystone:keystone_dev_password@localhost:5432/keystone"
-    )
+    database_url: str = "postgresql+asyncpg://keystone:keystone_dev_password@localhost:5432/keystone"
 
     @property
     def sync_database_url(self) -> str:
         """Synchronous database URL for seeding."""
-        return self.database_url.replace("+asyncpg", "").replace(
-            "postgresql://", "postgresql+psycopg://"
-        )
+        return self.database_url.replace("+asyncpg", "").replace("postgresql://", "postgresql+psycopg://")
 
     @property
     def raw_database_url(self) -> str:

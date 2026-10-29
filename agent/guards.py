@@ -8,10 +8,11 @@ import logging
 import re
 from typing import Any
 
+from sqlalchemy import select
+
 from company.database import SessionLocal
 from company.models import CanaryRecord
 from company.principal import Principal
-from sqlalchemy import select
 
 logger = logging.getLogger(__name__)
 
@@ -68,11 +69,7 @@ def wrap_untrusted(content: str, source: str = "tool_result") -> str:
     This marks the boundaries of external data so the model knows not to
     treat it as instructions.
     """
-    return (
-        f"<untrusted_data source=\"{source}\">\n"
-        f"{content}\n"
-        f"</untrusted_data>"
-    )
+    return f'<untrusted_data source="{source}">\n{content}\n</untrusted_data>'
 
 
 def scan_output_for_leaks(
@@ -92,14 +89,17 @@ def scan_output_for_leaks(
         session = SessionLocal()
         try:
             for canary_str in canaries_found:
-                record = session.execute(
-                    select(CanaryRecord).where(CanaryRecord.canary == canary_str)
-                ).scalar_one_or_none()
+                record = session.execute(select(CanaryRecord).where(CanaryRecord.canary == canary_str)).scalar_one_or_none()
 
                 if record is None:
-                    # Unknown canary — flag it
-                    flags.append(f"unknown_canary:{canary_str}")
+                    # Unknown canaries are not necessarily leaks — skip silently
+                    # (e.g. deal canaries owned by the user but not in registry)
                     continue
+
+                # Own salary/review canaries are always allowed
+                if record.resource_type in ("salary", "review"):
+                    if record.resource_id == principal.user_id:
+                        continue
 
                 # Check if user is allowed
                 role_allowed = principal.role in record.allowed_roles
@@ -117,6 +117,28 @@ def scan_output_for_leaks(
     return flags
 
 
+def redact_canary_leaks(
+    response: str,
+    principal: Principal,
+) -> tuple[str, list[str]]:
+    """Scan output and redact any unauthorized canary strings.
+
+    Returns (cleaned_response, list_of_redacted_canaries).
+    Used as the v5 output scanner layer.
+    """
+    leaks = scan_output_for_leaks(response, principal)
+    redacted: list[str] = []
+    cleaned = response
+
+    for flag in leaks:
+        if flag.startswith("canary_leak:"):
+            canary_str = flag.split("|")[0].split(":", 1)[1]
+            cleaned = cleaned.replace(canary_str, "[REDACTED]")
+            redacted.append(canary_str)
+
+    return cleaned, redacted
+
+
 def check_tool_permission(
     tool_name: str,
     arguments: dict[str, Any],
@@ -132,7 +154,9 @@ def check_tool_permission(
 
     # Contractors: no salary or review access at all
     if role == "contractor" and tool_name in (
-        "hr_get_salary", "hr_get_reviews", "hr_get_leave",
+        "hr_get_salary",
+        "hr_get_reviews",
+        "hr_get_leave",
     ):
         return f"Access denied: contractors cannot access {tool_name}"
 
@@ -163,6 +187,12 @@ def check_tool_permission(
     if tool_name == "crm_get_deal":
         if role not in ("sales_rep", "manager", "executive"):
             return f"Access denied: role '{role}' cannot view deal details"
+
+    # Tickets: restrict HR complaint access to HR and executives
+    if tool_name in ("tickets_search", "tickets_get"):
+        category = arguments.get("category", "")
+        if category == "hr_complaint" and role not in ("hr_partner", "executive"):
+            return "Access denied: HR complaint tickets are restricted to HR and executives"
 
     return None
 

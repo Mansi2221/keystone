@@ -6,18 +6,18 @@
 """
 
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from jose import JWTError, jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from jose import JWTError, jwt
+from sqlalchemy import select
 
 from company.config import settings
 from company.database import SessionLocal
-from company.models import Employee, Department
+from company.models import Department, Employee
 from company.principal import Principal
-from sqlalchemy import select
 
 logger = logging.getLogger(__name__)
 
@@ -61,17 +61,13 @@ def _build_demo_users() -> dict[str, dict[str, Any]]:
         for key, role, title_hint, dept_hint in role_specs:
             stmt = select(Employee).where(Employee.role == role)
             if dept_hint:
-                stmt = stmt.join(Department, Employee.department_id == Department.id).where(
-                    Department.name == dept_hint
-                )
+                stmt = stmt.join(Department, Employee.department_id == Department.id).where(Department.name == dept_hint)
             if title_hint:
                 stmt = stmt.where(Employee.title == title_hint)
             stmt = stmt.order_by(Employee.id).limit(1)
             emp = session.execute(stmt).scalar_one_or_none()
             if emp:
-                dept = session.execute(
-                    select(Department).where(Department.id == emp.department_id)
-                ).scalar_one_or_none()
+                dept = session.execute(select(Department).where(Department.id == emp.department_id)).scalar_one_or_none()
                 result[key] = {
                     "employee_id": emp.id,
                     "role": emp.role,
@@ -104,11 +100,11 @@ def _build_demo_users() -> dict[str, dict[str, Any]]:
 
 def create_access_token(employee_db_id: int, extra_claims: dict | None = None) -> str:
     """Create a JWT token for the given employee."""
-    expire = datetime.now(timezone.utc) + timedelta(minutes=settings.jwt_expiration_minutes)
+    expire = datetime.now(UTC) + timedelta(minutes=settings.jwt_expiration_minutes)
     payload = {
         "sub": str(employee_db_id),
         "exp": expire,
-        "iat": datetime.now(timezone.utc),
+        "iat": datetime.now(UTC),
     }
     if extra_claims:
         payload.update(extra_claims)
@@ -139,9 +135,7 @@ def resolve_principal(employee_db_id: int) -> Principal:
     """
     session = SessionLocal()
     try:
-        emp = session.execute(
-            select(Employee).where(Employee.id == employee_db_id)
-        ).scalar_one_or_none()
+        emp = session.execute(select(Employee).where(Employee.id == employee_db_id)).scalar_one_or_none()
 
         if not emp:
             raise HTTPException(
@@ -149,9 +143,7 @@ def resolve_principal(employee_db_id: int) -> Principal:
                 detail=f"Employee {employee_db_id} not found",
             )
 
-        dept = session.execute(
-            select(Department).where(Department.id == emp.department_id)
-        ).scalar_one_or_none()
+        dept = session.execute(select(Department).where(Department.id == emp.department_id)).scalar_one_or_none()
 
         # Compute direct and indirect reports
         report_ids = _get_all_report_ids(session, emp.id)
@@ -171,9 +163,7 @@ def resolve_principal(employee_db_id: int) -> Principal:
 
 def _get_all_report_ids(session: Any, manager_id: int) -> list[int]:
     """Recursively get all direct and indirect report IDs."""
-    direct = session.execute(
-        select(Employee.id).where(Employee.manager_id == manager_id)
-    ).scalars().all()
+    direct = session.execute(select(Employee.id).where(Employee.manager_id == manager_id)).scalars().all()
 
     all_reports = list(direct)
     for rid in direct:

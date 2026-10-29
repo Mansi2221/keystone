@@ -11,7 +11,7 @@ from datetime import datetime
 
 from sqlalchemy import select
 
-from company.models import ChatChannel, ChatMessage, ChannelMember
+from company.models import ChannelMember, ChatChannel, ChatMessage
 from company.principal import Principal
 from company.rls import rls_session
 from mcp_servers.base import access_denied, tool_result
@@ -31,16 +31,18 @@ def list_channels(
         stmt = stmt.order_by(ChatChannel.name)
 
         results = session.execute(stmt).scalars().all()
-        return tool_result([
-            {
-                "id": c.id,
-                "name": c.name,
-                "is_private": c.is_private,
-                "is_dm": c.is_dm,
-                "department": c.department,
-            }
-            for c in results
-        ])
+        return tool_result(
+            [
+                {
+                    "id": c.id,
+                    "name": c.name,
+                    "is_private": c.is_private,
+                    "is_dm": c.is_dm,
+                    "department": c.department,
+                }
+                for c in results
+            ]
+        )
 
 
 def get_channel_messages(
@@ -52,36 +54,33 @@ def get_channel_messages(
     """Get messages from a channel. Filtered by RLS (channel must be visible)."""
     with rls_session(principal) as session:
         # Check channel is visible via RLS
-        ch = session.execute(
-            select(ChatChannel).where(ChatChannel.id == channel_id)
-        ).scalar_one_or_none()
+        ch = session.execute(select(ChatChannel).where(ChatChannel.id == channel_id)).scalar_one_or_none()
 
         if not ch:
             return access_denied("channel", "Channel not found or access denied.")
 
-        stmt = (
-            select(ChatMessage)
-            .where(ChatMessage.channel_id == channel_id)
-        )
+        stmt = select(ChatMessage).where(ChatMessage.channel_id == channel_id)
         if before:
             stmt = stmt.where(ChatMessage.timestamp < datetime.fromisoformat(before))
 
         stmt = stmt.order_by(ChatMessage.timestamp.desc()).limit(limit)
         results = session.execute(stmt).scalars().all()
 
-        return tool_result({
-            "channel": {"id": ch.id, "name": ch.name},
-            "messages": [
-                {
-                    "id": m.id,
-                    "author_id": m.author_id,
-                    "content": m.content,
-                    "timestamp": m.timestamp.isoformat(),
-                    "canary": m.canary,
-                }
-                for m in reversed(results)  # chronological order
-            ],
-        })
+        return tool_result(
+            {
+                "channel": {"id": ch.id, "name": ch.name},
+                "messages": [
+                    {
+                        "id": m.id,
+                        "author_id": m.author_id,
+                        "content": m.content,
+                        "timestamp": m.timestamp.isoformat(),
+                        "canary": m.canary,
+                    }
+                    for m in reversed(results)  # chronological order
+                ],
+            }
+        )
 
 
 def search_messages(
@@ -92,28 +91,26 @@ def search_messages(
 ) -> dict:
     """Search messages across visible channels."""
     with rls_session(principal) as session:
-        stmt = (
-            select(ChatMessage)
-            .join(ChatChannel)
-            .where(ChatMessage.content.ilike(f"%{query}%"))
-        )
+        stmt = select(ChatMessage).join(ChatChannel).where(ChatMessage.content.ilike(f"%{query}%"))
         if channel_id:
             stmt = stmt.where(ChatMessage.channel_id == channel_id)
 
         stmt = stmt.order_by(ChatMessage.timestamp.desc()).limit(limit)
         results = session.execute(stmt).scalars().all()
 
-        return tool_result([
-            {
-                "id": m.id,
-                "channel_id": m.channel_id,
-                "author_id": m.author_id,
-                "content": m.content,
-                "timestamp": m.timestamp.isoformat(),
-                "canary": m.canary,
-            }
-            for m in results
-        ])
+        return tool_result(
+            [
+                {
+                    "id": m.id,
+                    "channel_id": m.channel_id,
+                    "author_id": m.author_id,
+                    "content": m.content,
+                    "timestamp": m.timestamp.isoformat(),
+                    "canary": m.canary,
+                }
+                for m in results
+            ]
+        )
 
 
 def post_message(
@@ -123,9 +120,7 @@ def post_message(
 ) -> dict:
     """Post a message to a channel. Requires human approval."""
     with rls_session(principal) as session:
-        ch = session.execute(
-            select(ChatChannel).where(ChatChannel.id == channel_id)
-        ).scalar_one_or_none()
+        ch = session.execute(select(ChatChannel).where(ChatChannel.id == channel_id)).scalar_one_or_none()
 
         if not ch:
             return access_denied("channel")
@@ -150,13 +145,15 @@ def post_message(
         session.add(msg)
         session.flush()
 
-        return tool_result({
-            "message_id": msg.id,
-            "channel_id": channel_id,
-            "channel_name": ch.name,
-            "action": "post_message",
-            "requires_approval": True,
-        })
+        return tool_result(
+            {
+                "message_id": msg.id,
+                "channel_id": channel_id,
+                "channel_name": ch.name,
+                "action": "post_message",
+                "requires_approval": True,
+            }
+        )
 
 
 TOOLS = {

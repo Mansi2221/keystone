@@ -12,7 +12,6 @@ import re
 import threading
 import time
 from pathlib import Path
-from typing import Any
 
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import AIMessage, BaseMessage
@@ -25,13 +24,15 @@ logger = logging.getLogger(__name__)
 def _redact_secrets(text: str) -> str:
     """Remove API keys and auth tokens from error messages."""
     for key_val in (
-        settings.gemini_api_key, settings.groq_api_key,
-        settings.openai_api_key, settings.anthropic_api_key,
+        settings.gemini_api_key,
+        settings.groq_api_key,
+        settings.openai_api_key,
+        settings.anthropic_api_key,
     ):
         if key_val and len(key_val) > 8:
             text = text.replace(key_val, "***REDACTED***")
-    text = re.sub(r'(Bearer\s+)\S+', r'\1***REDACTED***', text)
-    text = re.sub(r'(key=)\S+', r'\1***REDACTED***', text)
+    text = re.sub(r"(Bearer\s+)\S+", r"\1***REDACTED***", text)
+    text = re.sub(r"(key=)\S+", r"\1***REDACTED***", text)
     return text
 
 
@@ -101,7 +102,10 @@ class RateLimiter:
                 if wait_time > 0:
                     logger.info(
                         "Rate limit: waiting %.1fs for %s (%d/%d RPM)",
-                        wait_time, provider, len(log), rpm,
+                        wait_time,
+                        provider,
+                        len(log),
+                        rpm,
                     )
                     self._lock.release()
                     try:
@@ -144,10 +148,16 @@ def _cache_set(key: str, content: str, provider: str, model: str) -> None:
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
     path = CACHE_DIR / f"{key}.json"
     try:
-        path.write_text(json.dumps({
-            "provider": provider, "model": model,
-            "content": content, "cached_at": time.time(),
-        }))
+        path.write_text(
+            json.dumps(
+                {
+                    "provider": provider,
+                    "model": model,
+                    "content": content,
+                    "cached_at": time.time(),
+                }
+            )
+        )
     except OSError:
         pass
 
@@ -179,10 +189,13 @@ def _invoke_with_retry(
                 raise
 
             if is_rate_limit and attempt < max_retries:
-                wait = (2 ** attempt) * 2
+                wait = (2**attempt) * 2
                 logger.warning(
                     "Rate limited by %s (attempt %d/%d), waiting %ds",
-                    provider, attempt + 1, max_retries, wait,
+                    provider,
+                    attempt + 1,
+                    max_retries,
+                    wait,
                 )
                 time.sleep(wait)
             else:
@@ -243,26 +256,32 @@ def get_llm(purpose: str = "agent") -> BaseChatModel:
 
     if provider == "anthropic":
         from langchain_anthropic import ChatAnthropic
+
         return ChatAnthropic(model=model, temperature=0, api_key=api_key or None)
 
     if provider == "ollama":
         from langchain_openai import ChatOpenAI
+
         return ChatOpenAI(
-            model=model, temperature=0,
+            model=model,
+            temperature=0,
             base_url=settings.ollama_base_url,
             api_key="ollama",  # Ollama ignores this but langchain requires it
         )
 
     if provider in ("gemini", "groq"):
         from langchain_openai import ChatOpenAI
+
         return ChatOpenAI(
-            model=model, temperature=0,
+            model=model,
+            temperature=0,
             base_url=PROVIDER_BASE_URLS[provider],
             api_key=api_key or "missing-key",
         )
 
     # Default: OpenAI
     from langchain_openai import ChatOpenAI
+
     return ChatOpenAI(model=model, temperature=0, api_key=api_key or None)
 
 
@@ -301,6 +320,7 @@ def verify_key(purpose: str = "agent") -> tuple[bool, str]:
 
     try:
         from langchain_core.messages import HumanMessage
+
         llm = get_llm(purpose)
         _rate_limiter.wait_if_needed(provider)
         response = llm.invoke([HumanMessage(content="Say 'ok' and nothing else.")])

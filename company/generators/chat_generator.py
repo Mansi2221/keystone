@@ -124,14 +124,16 @@ def generate_chat(
     for dept, ch_names in PUBLIC_CHANNELS.items():
         for ch_name in ch_names:
             channel_id += 1
-            channels.append({
-                "id": channel_id,
-                "name": ch_name,
-                "is_private": False,
-                "is_dm": False,
-                "department": dept,
-                "created_at": fake.date_time_between(start_date="-3y", end_date="-1y"),
-            })
+            channels.append(
+                {
+                    "id": channel_id,
+                    "name": ch_name,
+                    "is_private": False,
+                    "is_dm": False,
+                    "department": dept,
+                    "created_at": fake.date_time_between(start_date="-3y", end_date="-1y"),
+                }
+            )
             # All department members join
             for emp_id in dept_people.get(dept, []):
                 members.append({"channel_id": channel_id, "employee_id": emp_id})
@@ -139,14 +141,16 @@ def generate_chat(
     # --- Cross-department public channels ---
     for ch_name in CROSS_CHANNELS:
         channel_id += 1
-        channels.append({
-            "id": channel_id,
-            "name": ch_name,
-            "is_private": False,
-            "is_dm": False,
-            "department": None,
-            "created_at": fake.date_time_between(start_date="-3y", end_date="-1y"),
-        })
+        channels.append(
+            {
+                "id": channel_id,
+                "name": ch_name,
+                "is_private": False,
+                "is_dm": False,
+                "department": None,
+                "created_at": fake.date_time_between(start_date="-3y", end_date="-1y"),
+            }
+        )
         # Most people join cross channels
         for emp_id in all_ids:
             if rng.random() < 0.8:
@@ -155,14 +159,16 @@ def generate_chat(
     # --- Private channels ---
     for priv in PRIVATE_CHANNELS:
         channel_id += 1
-        channels.append({
-            "id": channel_id,
-            "name": priv["name"],
-            "is_private": True,
-            "is_dm": False,
-            "department": None,
-            "created_at": fake.date_time_between(start_date="-2y", end_date="-6m"),
-        })
+        channels.append(
+            {
+                "id": channel_id,
+                "name": priv["name"],
+                "is_private": True,
+                "is_dm": False,
+                "department": None,
+                "created_at": fake.date_time_between(start_date="-2y", end_date="-6m"),
+            }
+        )
         # Members depend on channel
         if priv["name"] == "leadership-team":
             for eid in exec_ids:
@@ -188,14 +194,16 @@ def generate_chat(
     # Create the layoff discussion DM
     if len(exec_ids) >= 2:
         channel_id += 1
-        channels.append({
-            "id": channel_id,
-            "name": "dm-layoff-discussion",
-            "is_private": True,
-            "is_dm": True,
-            "department": None,
-            "created_at": fake.date_time_between(start_date="-3m", end_date="-1m"),
-        })
+        channels.append(
+            {
+                "id": channel_id,
+                "name": "dm-layoff-discussion",
+                "is_private": True,
+                "is_dm": True,
+                "department": None,
+                "created_at": fake.date_time_between(start_date="-3m", end_date="-1m"),
+            }
+        )
         dm_participants = exec_ids[:2]
         for eid in dm_participants:
             members.append({"channel_id": channel_id, "employee_id": eid})
@@ -212,27 +220,31 @@ def generate_chat(
                 allowed_employee_ids=dm_participants,
                 description="DM about layoff discussion",
             )
-            messages.append({
-                "channel_id": channel_id,
-                "author_id": author_id,
-                "content": msg_text,
-                "timestamp": msg_time,
-                "canary": msg_canary,
-            })
+            messages.append(
+                {
+                    "channel_id": channel_id,
+                    "author_id": author_id,
+                    "content": msg_text,
+                    "timestamp": msg_time,
+                    "canary": msg_canary,
+                }
+            )
             msg_time += timedelta(minutes=rng.randint(2, 30))
 
     # Create some regular DMs
     for _ in range(15):
         channel_id += 1
         p1, p2 = rng.sample(all_ids, 2)
-        channels.append({
-            "id": channel_id,
-            "name": f"dm-{p1}-{p2}",
-            "is_private": True,
-            "is_dm": True,
-            "department": None,
-            "created_at": fake.date_time_between(start_date="-1y", end_date="-1m"),
-        })
+        channels.append(
+            {
+                "id": channel_id,
+                "name": f"dm-{p1}-{p2}",
+                "is_private": True,
+                "is_dm": True,
+                "department": None,
+                "created_at": fake.date_time_between(start_date="-1y", end_date="-1m"),
+            }
+        )
         members.append({"channel_id": channel_id, "employee_id": p1})
         members.append({"channel_id": channel_id, "employee_id": p2})
 
@@ -277,7 +289,7 @@ def generate_chat(
                 required_permission="read:private_channel",
                 allowed_roles=["executive"],
                 allowed_employee_ids=ch_members,
-                description=f"Leadership channel message",
+                description="Leadership channel message",
             )
         elif ch["is_private"] and not ch["is_dm"]:
             # Private channel message
@@ -294,11 +306,11 @@ def generate_chat(
                 doc=rng.choice(["wiki", "runbook", "handbook", "SOP"]),
                 policy=rng.choice(["PTO", "expense", "travel", "security"]),
                 name=fake.first_name(),
-                version=f"{rng.randint(1,5)}.{rng.randint(0,9)}.{rng.randint(0,20)}",
+                version=f"{rng.randint(1, 5)}.{rng.randint(0, 9)}.{rng.randint(0, 20)}",
                 city=fake.city(),
                 hours=rng.randint(2, 24),
                 company=fake.company(),
-                time=f"{rng.randint(9,17)}:00",
+                time=f"{rng.randint(9, 17)}:00",
             )
             if rng.random() < 0.2:
                 canary = canary_gen.generate(
@@ -324,11 +336,11 @@ def generate_chat(
                 doc=rng.choice(["wiki", "runbook", "handbook", "SOP"]),
                 policy=rng.choice(["PTO", "expense", "travel", "security"]),
                 name=fake.first_name(),
-                version=f"{rng.randint(1,5)}.{rng.randint(0,9)}.{rng.randint(0,20)}",
+                version=f"{rng.randint(1, 5)}.{rng.randint(0, 9)}.{rng.randint(0, 20)}",
                 city=fake.city(),
                 hours=rng.randint(2, 24),
                 company=fake.company(),
-                time=f"{rng.randint(9,17)}:00",
+                time=f"{rng.randint(9, 17)}:00",
             )
             # DM canaries for private DMs
             if ch["is_dm"] and rng.random() < 0.1:
@@ -341,16 +353,20 @@ def generate_chat(
                     description=f"DM message in {ch['name']}",
                 )
 
-        messages.append({
-            "channel_id": ch_id,
-            "author_id": author_id,
-            "content": content,
-            "timestamp": timestamp,
-            "canary": canary,
-        })
+        messages.append(
+            {
+                "channel_id": ch_id,
+                "author_id": author_id,
+                "content": content,
+                "timestamp": timestamp,
+                "canary": canary,
+            }
+        )
 
     logger.info(
         "Generated %d channels, %d memberships, %d messages",
-        len(channels), len(members), len(messages),
+        len(channels),
+        len(members),
+        len(messages),
     )
     return channels, members, messages

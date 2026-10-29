@@ -8,7 +8,6 @@ Features:
 - Side-by-side demo mode
 """
 
-import json
 import os
 
 import httpx
@@ -157,54 +156,57 @@ if not st.session_state.demo_mode:
         with st.chat_message("user"):
             st.markdown(prompt)
 
-        with st.chat_message("assistant"):
-            with st.spinner("Thinking..."):
-                resp = api_call("POST", "/chat", json={"message": prompt})
-                if resp and resp.status_code == 200:
-                    data = resp.json()
-                    reply = data.get("reply", "No response")
-                    sources = data.get("sources", [])
-                    trace_id = data.get("trace_id")
-                    pending = data.get("pending_actions", [])
+        with st.chat_message("assistant"), st.spinner("Thinking..."):
+            resp = api_call("POST", "/chat", json={"message": prompt})
+            if resp and resp.status_code == 200:
+                data = resp.json()
+                reply = data.get("reply", "No response")
+                sources = data.get("sources", [])
+                trace_id = data.get("trace_id")
+                pending = data.get("pending_actions", [])
 
-                    st.markdown(reply)
+                st.markdown(reply)
 
-                    if sources:
-                        with st.expander("Sources"):
-                            for s in sources:
-                                st.caption(f"[{s['type']}] {s['id']}: {s.get('title', '')}")
+                if sources:
+                    with st.expander("Sources"):
+                        for s in sources:
+                            st.caption(f"[{s['type']}] {s['id']}: {s.get('title', '')}")
 
-                    if trace_id:
-                        st.caption(f"Trace: {trace_id}")
+                if trace_id:
+                    st.caption(f"Trace: {trace_id}")
 
-                    # Approval panel for pending actions
-                    if pending:
-                        st.warning("⚠️ Action requires your approval:")
-                        for action in pending:
-                            st.json(action)
-                            col1, col2 = st.columns(2)
-                            with col1:
-                                if st.button("✅ Approve", key=f"approve_{trace_id}"):
-                                    st.success("Action approved")
-                            with col2:
-                                if st.button("❌ Deny", key=f"deny_{trace_id}"):
-                                    st.info("Action denied")
+                # Approval panel for pending actions
+                if pending:
+                    st.warning("⚠️ Action requires your approval:")
+                    for action in pending:
+                        st.json(action)
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            if st.button("✅ Approve", key=f"approve_{trace_id}"):
+                                st.success("Action approved")
+                        with col2:
+                            if st.button("❌ Deny", key=f"deny_{trace_id}"):
+                                st.info("Action denied")
 
-                    st.session_state.messages.append({
+                st.session_state.messages.append(
+                    {
                         "role": "assistant",
                         "content": reply,
                         "sources": sources,
                         "trace_id": trace_id,
-                    })
-                else:
-                    error = "Failed to get response"
-                    if resp:
-                        error = resp.text
-                    st.error(error)
-                    st.session_state.messages.append({
+                    }
+                )
+            else:
+                error = "Failed to get response"
+                if resp:
+                    error = resp.text
+                st.error(error)
+                st.session_state.messages.append(
+                    {
                         "role": "assistant",
                         "content": f"Error: {error}",
-                    })
+                    }
+                )
 
 else:
     # --- Side-by-Side Demo Mode ---
@@ -265,9 +267,7 @@ if st.session_state.get("show_audit"):
         entries = resp.json()
         if entries:
             for entry in entries:
-                with st.expander(
-                    f"{entry['timestamp']} — {entry['tool']} ({entry['result_status']})"
-                ):
+                with st.expander(f"{entry['timestamp']} — {entry['tool']} ({entry['result_status']})"):
                     st.json(entry)
         else:
             st.info("No audit log entries yet")

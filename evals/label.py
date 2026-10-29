@@ -30,9 +30,9 @@ def _cohens_kappa(judge: list[bool], human: list[bool]) -> float:
         return 0.0
 
     # Contingency table
-    a = sum(1 for j, h in zip(judge, human) if j and h)       # both pass
-    b = sum(1 for j, h in zip(judge, human) if j and not h)   # judge pass, human fail
-    c = sum(1 for j, h in zip(judge, human) if not j and h)   # judge fail, human pass
+    a = sum(1 for j, h in zip(judge, human) if j and h)  # both pass
+    b = sum(1 for j, h in zip(judge, human) if j and not h)  # judge pass, human fail
+    c = sum(1 for j, h in zip(judge, human) if not j and h)  # judge fail, human pass
     d = sum(1 for j, h in zip(judge, human) if not j and not h)  # both fail
 
     po = (a + d) / n  # observed agreement
@@ -84,8 +84,10 @@ def label_session(source_path: str, iteration: str, count: int) -> Path:
         if r.get("expected_answer"):
             print(f"  Expected: {r['expected_answer']}")
         print(f"  Response: {r.get('agent_response', '(no response)')[:500]}")
-        print(f"  LLM judge: {'PASS' if r.get('pass') else 'FAIL'} "
-              f"(score={r.get('score', '?')}, reason={r.get('reasoning', 'n/a')[:80]})")
+        print(
+            f"  LLM judge: {'PASS' if r.get('pass') else 'FAIL'} "
+            f"(score={r.get('score', '?')}, reason={r.get('reasoning', 'n/a')[:80]})"
+        )
 
         while True:
             try:
@@ -104,15 +106,17 @@ def label_session(source_path: str, iteration: str, count: int) -> Path:
             continue
 
         human_pass = choice == "p"
-        labels.append({
-            "case_id": r.get("_ablation_id", r["case_id"]),
-            "suite": r.get("_suite", ""),
-            "message": r["message"],
-            "judge_pass": r.get("pass", False),
-            "judge_score": r.get("score", 0.0),
-            "human_pass": human_pass,
-            "iteration": iteration,
-        })
+        labels.append(
+            {
+                "case_id": r.get("_ablation_id", r["case_id"]),
+                "suite": r.get("_suite", ""),
+                "message": r["message"],
+                "judge_pass": r.get("pass", False),
+                "judge_score": r.get("score", 0.0),
+                "human_pass": human_pass,
+                "iteration": iteration,
+            }
+        )
 
     # Save labels
     with open(out_path, "w") as f:
@@ -127,9 +131,9 @@ def label_session(source_path: str, iteration: str, count: int) -> Path:
         human_labels = [l["human_pass"] for l in labels]
         kappa = _cohens_kappa(judge_labels, human_labels)
         agree = sum(1 for j, h in zip(judge_labels, human_labels) if j == h)
-        print(f"\nQuick stats:")
+        print("\nQuick stats:")
         print(f"  Labeled:    {len(labels)}")
-        print(f"  Agreement:  {agree}/{len(labels)} ({agree/len(labels):.1%})")
+        print(f"  Agreement:  {agree}/{len(labels)} ({agree / len(labels):.1%})")
         print(f"  Cohen's κ:  {kappa:.3f}")
         _interpret_kappa(kappa)
 
@@ -164,10 +168,10 @@ def compute_kappa(labels_path: str) -> None:
     print(f"Cohen's Kappa Analysis: {labels_path}")
     print(f"{'=' * 50}")
     print(f"  Total labeled:  {len(labels)}")
-    print(f"  Agreement:      {agree}/{len(labels)} ({agree/len(labels):.1%})")
+    print(f"  Agreement:      {agree}/{len(labels)} ({agree / len(labels):.1%})")
     print(f"  Cohen's κ:      {kappa:.3f}")
     print()
-    print(f"  Contingency table:")
+    print("  Contingency table:")
     print(f"  {'':>20} Human PASS  Human FAIL")
     print(f"  {'Judge PASS':>20}    {tp:>4}        {fp:>4}")
     print(f"  {'Judge FAIL':>20}    {fn:>4}        {tn:>4}")
@@ -201,16 +205,109 @@ def _interpret_kappa(kappa: float) -> None:
     print(f"  Interpretation: {interp} (Landis & Koch)")
 
 
+def label_batch(batch_path: str, source_path: str, iteration: str) -> Path:
+    """Label cases from a pre-selected batch file (JSON array)."""
+    with open(batch_path) as f:
+        batch = json.load(f)
+
+    with open(source_path) as f:
+        data = json.load(f)
+
+    results = data[iteration]["results"]
+    lookup = {r.get("_ablation_id", r["case_id"]): r for r in results}
+
+    LABELS_DIR.mkdir(parents=True, exist_ok=True)
+    ts = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+    out_path = LABELS_DIR / f"labels_{ts}.jsonl"
+
+    labels: list[dict] = []
+    print()
+    print("=" * 70)
+    print(f"  LABELING SESSION: {len(batch)} pre-selected cases from {iteration}")
+    print("  Enter: p = pass, f = fail, s = skip, q = quit")
+    print("=" * 70)
+
+    for i, case_info in enumerate(batch, 1):
+        cid = case_info["case_id"]
+        r = lookup.get(cid, case_info)
+
+        print(f"\n--- Case {i}/{len(batch)}: {cid} ---")
+        print(f"  Suite:    {r.get('_suite', case_info.get('suite', 'unknown'))}")
+        print(f"  Role:     {r.get('user_role', case_info.get('role', 'unknown'))}")
+        print(f"  Message:  {r.get('message', case_info.get('message', ''))}")
+        if r.get("expected_answer") or case_info.get("expected_answer"):
+            print(f"  Expected: {r.get('expected_answer', case_info.get('expected_answer', ''))}")
+        resp = r.get("agent_response", case_info.get("response_preview", "(no response)"))
+        print(f"  Response: {resp[:500]}")
+        print(
+            f"  Judge: {'PASS' if r.get('pass') else 'FAIL'} "
+            f"(score={r.get('score', '?')}, grounding_fail={r.get('grounding_fail', False)})"
+        )
+        if r.get("grounding_reason") or case_info.get("reasoning"):
+            print(f"  Reason: {r.get('grounding_reason', r.get('reasoning', case_info.get('reasoning', '')))[:120]}")
+
+        while True:
+            try:
+                choice = input("  Your label [p/f/s/q]: ").strip().lower()
+            except (EOFError, KeyboardInterrupt):
+                choice = "q"
+
+            if choice in ("p", "f", "s", "q"):
+                break
+            print("  Invalid input. Use p (pass), f (fail), s (skip), q (quit).")
+
+        if choice == "q":
+            print("Quitting labeling session.")
+            break
+        if choice == "s":
+            continue
+
+        human_pass = choice == "p"
+        labels.append(
+            {
+                "case_id": cid,
+                "suite": r.get("_suite", case_info.get("suite", "")),
+                "message": r.get("message", case_info.get("message", "")),
+                "judge_pass": r.get("pass", False),
+                "judge_score": r.get("score", 0.0),
+                "human_pass": human_pass,
+                "iteration": iteration,
+            }
+        )
+
+    with open(out_path, "w") as f:
+        for label in labels:
+            f.write(json.dumps(label) + "\n")
+
+    print(f"\nSaved {len(labels)} labels to {out_path}")
+
+    if labels:
+        judge_labels = [l["judge_pass"] for l in labels]
+        human_labels = [l["human_pass"] for l in labels]
+        kappa = _cohens_kappa(judge_labels, human_labels)
+        agree = sum(1 for j, h in zip(judge_labels, human_labels) if j == h)
+        print("\nQuick stats:")
+        print(f"  Labeled:    {len(labels)}")
+        print(f"  Agreement:  {agree}/{len(labels)} ({agree / len(labels):.1%})")
+        print(f"  Cohen's kappa:  {kappa:.3f}")
+        _interpret_kappa(kappa)
+
+    return out_path
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Hand-labeling CLI and Cohen's kappa")
     parser.add_argument("--source", help="Ablation report JSON to label from")
     parser.add_argument("--iteration", default="v4", help="Which iteration to label (default: v4)")
     parser.add_argument("--count", type=int, default=50, help="Number of cases to label")
     parser.add_argument("--kappa", help="Compute kappa from a saved labels JSONL file")
+    parser.add_argument("--batch", help="Pre-selected batch JSON file for labeling")
     args = parser.parse_args()
 
     if args.kappa:
         compute_kappa(args.kappa)
+    elif args.batch and args.source:
+        label_batch(args.batch, args.source, args.iteration)
     elif args.source:
         label_session(args.source, args.iteration, args.count)
     else:
