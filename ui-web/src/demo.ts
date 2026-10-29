@@ -151,7 +151,10 @@ function getPersonaSuffix(userKey: string): string {
 export function isDemoMode(): boolean {
   if (typeof window === 'undefined') return false
   const params = new URLSearchParams(window.location.search)
-  return params.get('mode') === 'demo'
+  if (params.get('mode') === 'demo') return true
+  // Auto-detect: if hosted on vercel.app, always use demo mode (no backend)
+  if (window.location.hostname.includes('vercel.app')) return true
+  return false
 }
 
 let _autoDetected: boolean | null = null
@@ -160,7 +163,7 @@ export async function shouldUseDemoMode(): Promise<boolean> {
   if (isDemoMode()) return true
   if (_autoDetected !== null) return _autoDetected
   try {
-    const res = await fetch('/api/auth/demo-users', { signal: AbortSignal.timeout(2000) })
+    const res = await fetch('/api/auth/demo-users', { signal: AbortSignal.timeout(1500) })
     _autoDetected = !res.ok
   } catch {
     _autoDetected = true
