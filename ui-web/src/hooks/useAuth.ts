@@ -1,14 +1,20 @@
 import { useCallback, useEffect, useState } from 'react'
 import { fetchDemoUsers, fetchMe, login as apiLogin, setAuthState, clearAuthState, onTokenRefresh } from '../api'
+import { isDemoMode, demoDemoUsers } from '../demo'
 import type { DemoUser, Principal } from '../types'
 
 const TOKEN_KEY = 'keystone-token'
 const USER_KEY = 'keystone-user'
 
 export function useAuth() {
-  const [token, setToken] = useState<string | null>(() => localStorage.getItem(TOKEN_KEY))
+  // In demo mode, ignore stale tokens from previous sessions
+  const [token, setToken] = useState<string | null>(() => {
+    const stored = localStorage.getItem(TOKEN_KEY)
+    if (isDemoMode() && stored && !stored.startsWith('demo-token-')) return null
+    return stored
+  })
   const [principal, setPrincipal] = useState<Principal | null>(null)
-  const [demoUsers, setDemoUsers] = useState<DemoUser[]>([])
+  const [demoUsers, setDemoUsers] = useState<DemoUser[]>(isDemoMode() ? demoDemoUsers() : [])
   const [currentUserKey, setCurrentUserKey] = useState<string | null>(() => localStorage.getItem(USER_KEY))
   const [loading, setLoading] = useState(false)
 
