@@ -2,6 +2,8 @@
 
 **A permission-aware enterprise AI agent deployed into a fictional company, with a full evaluation harness and CI gate.**
 
+![Keystone Demo](docs/media/demo.gif)
+
 Keystone demonstrates that an LLM-powered agent can be made safe and auditable by enforcing permissions in code -- at the policy layer before each tool call, and again at the data layer -- never relying on the model to decide access.
 
 ## Architecture
