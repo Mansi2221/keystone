@@ -7,6 +7,7 @@ import { SuggestedQuestions } from './components/SuggestedQuestions'
 import { RightPanel } from './components/RightPanel'
 import { CompareMode } from './components/CompareMode'
 import { EvalsView } from './components/EvalsView'
+import { DemoBanner } from './components/DemoBanner'
 import { useAuth } from './hooks/useAuth'
 import { useChat } from './hooks/useChat'
 import { applyTheme, getStoredTheme, storeTheme, type Theme } from './theme'
@@ -66,6 +67,8 @@ export default function App() {
 
   return (
     <div className={`app-layout ${rightPanelOpen ? '' : 'right-collapsed'} ${compareMode ? 'compare-active' : ''}`}>
+      <DemoBanner />
+
       {/* Header */}
       <header className="app-header">
         <div className="header-left">
