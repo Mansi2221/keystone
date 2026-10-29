@@ -11,7 +11,6 @@ import os
 
 import pytest
 from sqlalchemy import create_engine, text
-from sqlalchemy.orm import Session
 
 # Skip all tests in this module if no database
 pytestmark = pytest.mark.integration
@@ -147,9 +146,7 @@ class TestRLSDocuments:
             conn.execute(text("SET LOCAL app.groups = 'engineering,engineering_all'"))
             conn.execute(text("SET LOCAL app.report_ids = '0'"))
 
-            result = conn.execute(text(
-                "SELECT count(*) FROM documents WHERE doc_type = 'board_minutes'"
-            )).fetchone()
+            result = conn.execute(text("SELECT count(*) FROM documents WHERE doc_type = 'board_minutes'")).fetchone()
             assert result[0] == 0, f"IC should see 0 board minutes, got {result[0]}"
             trans.rollback()
 
@@ -167,9 +164,7 @@ class TestRLSDocuments:
             conn.execute(text("SET LOCAL app.groups = 'leadership,board_access,operations,operations_all'"))
             conn.execute(text("SET LOCAL app.report_ids = '0'"))
 
-            result = conn.execute(text(
-                "SELECT count(*) FROM documents WHERE doc_type = 'board_minutes'"
-            )).fetchone()
+            result = conn.execute(text("SELECT count(*) FROM documents WHERE doc_type = 'board_minutes'")).fetchone()
             assert result[0] >= 5, f"Executive should see board minutes, got {result[0]}"
             trans.rollback()
 
@@ -216,11 +211,9 @@ class TestRLSChat:
             conn.execute(text("SET LOCAL app.groups = 'operations,operations_all'"))
             conn.execute(text("SET LOCAL app.report_ids = '0'"))
 
-            result = conn.execute(text(
-                "SELECT count(*) FROM chat_channels WHERE name = 'leadership-team'"
-            )).fetchone()
+            result = conn.execute(text("SELECT count(*) FROM chat_channels WHERE name = 'leadership-team'")).fetchone()
             # Should be 0 since this IC is not a member
-            assert result[0] == 0, f"Non-member should not see leadership channel"
+            assert result[0] == 0, "Non-member should not see leadership channel"
             trans.rollback()
 
 
@@ -242,9 +235,7 @@ class TestRLSTickets:
             conn.execute(text("SET LOCAL app.groups = ''"))
             conn.execute(text("SET LOCAL app.report_ids = '0'"))
 
-            result = conn.execute(text(
-                "SELECT owner_id, assignee_id FROM tickets"
-            )).fetchall()
+            result = conn.execute(text("SELECT owner_id, assignee_id FROM tickets")).fetchall()
 
             for row in result:
                 assert row[0] == 100 or row[1] == 100, (

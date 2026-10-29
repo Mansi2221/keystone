@@ -10,7 +10,7 @@ import logging
 
 from sqlalchemy import select, text
 
-from company.models import Document, DocumentChunk
+from company.models import Document
 from company.principal import Principal
 from company.rls import rls_session
 from mcp_servers.base import access_denied, tool_result
@@ -29,10 +29,7 @@ def search_documents(
     with rls_session(principal) as session:
         stmt = select(Document)
         if query:
-            stmt = stmt.where(
-                (Document.title.ilike(f"%{query}%"))
-                | (Document.content.ilike(f"%{query}%"))
-            )
+            stmt = stmt.where((Document.title.ilike(f"%{query}%")) | (Document.content.ilike(f"%{query}%")))
         if doc_type:
             stmt = stmt.where(Document.doc_type == doc_type)
         if department:
@@ -41,19 +38,21 @@ def search_documents(
         stmt = stmt.order_by(Document.updated_at.desc()).limit(limit)
         results = session.execute(stmt).scalars().all()
 
-        return tool_result([
-            {
-                "doc_id": d.doc_id,
-                "title": d.title,
-                "doc_type": d.doc_type,
-                "department": d.department,
-                "version": d.version,
-                "owner_id": d.owner_id,
-                "access_groups": d.access_groups,
-                "updated_at": d.updated_at.isoformat(),
-            }
-            for d in results
-        ])
+        return tool_result(
+            [
+                {
+                    "doc_id": d.doc_id,
+                    "title": d.title,
+                    "doc_type": d.doc_type,
+                    "department": d.department,
+                    "version": d.version,
+                    "owner_id": d.owner_id,
+                    "access_groups": d.access_groups,
+                    "updated_at": d.updated_at.isoformat(),
+                }
+                for d in results
+            ]
+        )
 
 
 def get_document(principal: Principal, doc_id: str) -> dict:
@@ -65,20 +64,22 @@ def get_document(principal: Principal, doc_id: str) -> dict:
         if not doc:
             return access_denied("document", "Document not found or access denied.")
 
-        return tool_result({
-            "doc_id": doc.doc_id,
-            "title": doc.title,
-            "content": doc.content,
-            "doc_type": doc.doc_type,
-            "department": doc.department,
-            "version": doc.version,
-            "owner_id": doc.owner_id,
-            "access_groups": doc.access_groups,
-            "created_at": doc.created_at.isoformat(),
-            "updated_at": doc.updated_at.isoformat(),
-            "is_duplicate": doc.is_duplicate,
-            "is_stale": doc.is_stale,
-        })
+        return tool_result(
+            {
+                "doc_id": doc.doc_id,
+                "title": doc.title,
+                "content": doc.content,
+                "doc_type": doc.doc_type,
+                "department": doc.department,
+                "version": doc.version,
+                "owner_id": doc.owner_id,
+                "access_groups": doc.access_groups,
+                "created_at": doc.created_at.isoformat(),
+                "updated_at": doc.updated_at.isoformat(),
+                "is_duplicate": doc.is_duplicate,
+                "is_stale": doc.is_stale,
+            }
+        )
 
 
 def semantic_search(
@@ -127,25 +128,30 @@ def semantic_search(
             LIMIT :limit
         """)
 
-        results = session.execute(stmt, {
-            "embedding": str(query_embedding),
-            "groups": groups,
-            "role": principal.role,
-            "limit": limit,
-        }).fetchall()
-
-        return tool_result([
+        results = session.execute(
+            stmt,
             {
-                "chunk_id": r.id,
-                "doc_id": r.doc_id,
-                "title": r.title,
-                "doc_type": r.doc_type,
-                "department": r.department,
-                "content": r.content,
-                "similarity": float(r.similarity) if r.similarity else 0.0,
-            }
-            for r in results
-        ])
+                "embedding": str(query_embedding),
+                "groups": groups,
+                "role": principal.role,
+                "limit": limit,
+            },
+        ).fetchall()
+
+        return tool_result(
+            [
+                {
+                    "chunk_id": r.id,
+                    "doc_id": r.doc_id,
+                    "title": r.title,
+                    "doc_type": r.doc_type,
+                    "department": r.department,
+                    "content": r.content,
+                    "similarity": float(r.similarity) if r.similarity else 0.0,
+                }
+                for r in results
+            ]
+        )
 
 
 TOOLS = {

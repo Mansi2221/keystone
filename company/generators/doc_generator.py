@@ -10,7 +10,7 @@ import hashlib
 import json
 import logging
 import random
-from datetime import datetime, timedelta
+from datetime import timedelta
 from pathlib import Path
 
 from faker import Faker
@@ -322,9 +322,7 @@ def generate_documents(
             dept = "Finance"
             access_groups = ["finance_read", "leadership"]
         else:
-            doc_type = rng.choices(
-                ["wiki", "policy", "contract"], weights=[60, 20, 20]
-            )[0]
+            doc_type = rng.choices(["wiki", "policy", "contract"], weights=[60, 20, 20])[0]
             dept = rng.choice(departments)
 
             if doc_type == "wiki":
@@ -367,9 +365,7 @@ def generate_documents(
         # Build content
         if doc_type == "board_minutes":
             is_acquisition = "Acquisition" in title
-            attendees = ", ".join(
-                f"{e[1].first_name} {e[1].last_name}" for e in execs[:5]
-            )
+            attendees = ", ".join(f"{e[1].first_name} {e[1].last_name}" for e in execs[:5])
 
             content = _get_cached_or_generate(
                 f"board_{title}_{seed}",
@@ -449,9 +445,7 @@ def generate_documents(
         # Use inconsistent author names in some documents
         if rng.random() < 0.15 and owner.alt_names:
             alt_name = rng.choice(owner.alt_names)
-            content = content.replace(
-                f"{owner.first_name} {owner.last_name}", alt_name, 1
-            )
+            content = content.replace(f"{owner.first_name} {owner.last_name}", alt_name, 1)
 
         # Canary for restricted documents
         canary = None
