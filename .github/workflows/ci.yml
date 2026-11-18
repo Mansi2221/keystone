@@ -124,3 +124,14 @@ jobs:
         with:
           name: security-test-results
           path: security-results.xml
+
+  docker-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build API image
+        run: docker build -t keystone-api:ci .
+      - name: Build UI image
+        run: docker build -f Dockerfile.ui -t keystone-ui:ci .
+      - name: Verify compose config
+        run: docker compose config --quiet
